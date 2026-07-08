@@ -91,6 +91,7 @@ export function resolveSiteConfig(
     author: config?.site?.author ?? blogConfig.author,
     description: config?.site?.description ?? blogConfig.description,
     social: migrateSocial(config?.site?.social),
+    music: config?.site?.music ?? blogConfig.music,
     icons: {
       faviconSvg:
         config?.site?.icons?.faviconSvg || blogConfig.icons.faviconSvg,

@@ -10,6 +10,7 @@ export const blogConfig = {
     { platform: "email", url: "mailto:example@email.com" },
     { platform: "rss", url: "/rss.xml" },
   ],
+  music: [],
   icons: {
     faviconSvg: "/favicon.svg",
     faviconIco: "/favicon.ico",

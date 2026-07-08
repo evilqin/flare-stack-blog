@@ -9,6 +9,14 @@ export const SocialLinkSchema = z.object({
   label: z.string().optional(),
 });
 
+export const MusicTrackSchema = z.object({
+  id: z.string(),
+  title: z.string().min(1),
+  artist: z.string().min(1),
+  cover: z.string().optional(),
+  src: z.string().min(1),
+});
+
 export const DEFAULT_THEME_OPACITY_MIN = 0;
 export const DEFAULT_THEME_OPACITY_MAX = 0.4;
 export const DEFAULT_THEME_BLUR_MIN = 0;
@@ -287,6 +295,7 @@ export const FullSiteConfigSchema = z.object({
   author: createSiteTextSchema(80),
   description: createSiteTextSchema(300),
   social: z.array(SocialLinkSchema),
+  music: z.array(MusicTrackSchema).optional(),
   icons: z.object({
     faviconSvg: createAssetPathSchema(),
     faviconIco: createAssetPathSchema(),
@@ -307,6 +316,7 @@ export function createSiteConfigInputFormSchema(messages: Messages) {
     author: createSiteTextFormSchema(80, messages).optional(),
     description: createSiteTextFormSchema(300, messages).optional(),
     social: z.array(SocialLinkSchema).optional(),
+    music: z.array(MusicTrackSchema).optional(),
     icons: z
       .object({
         faviconSvg: createOptionalAssetPathFormSchema(messages).optional(),
@@ -332,6 +342,7 @@ export const SiteConfigInputSchema = z.object({
   author: createSiteTextSchema(80).optional(),
   description: createSiteTextSchema(300).optional(),
   social: z.array(SocialLinkSchema).optional(),
+  music: z.array(MusicTrackSchema).optional(),
   icons: z
     .object({
       faviconSvg: createOptionalAssetPathSchema().optional(),
@@ -367,3 +378,4 @@ export type FuwariThemeSiteConfigInput = z.infer<
 >;
 export type SiteConfig = z.infer<typeof FullSiteConfigSchema>;
 export type SiteConfigInput = z.infer<typeof SiteConfigInputSchema>;
+export type MusicTrack = z.infer<typeof MusicTrackSchema>;

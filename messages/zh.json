@@ -1111,6 +1111,8 @@
   "settings_site_section_social_desc": "展示在页面上的公开联系方式。",
   "settings_site_section_icons_title": "网站图标",
   "settings_site_section_icons_desc": "上传 favicon 及适用于各种设备平台的图标。建议先去 realfavicongenerator.net 生成图标包，再填写对应站内路径。",
+  "settings_site_section_music_title": "音乐播放器",
+  "settings_site_section_music_desc": "添加音乐，它们会出现在侧边栏的音乐播放器中。支持通过直链添加 MP3 等音频格式。",
   "settings_site_field_title": "站点标题",
   "settings_site_field_title_hint": "用于页面标题、manifest name 等。",
   "settings_site_field_title_ph": "我的博客",
@@ -1460,5 +1462,14 @@
   "email_webhook_friend_link_submitted_message": "{submitterName} 提交了友链申请：{siteName}（{siteUrl}）",
   "email_webhook_friend_link_approved_message": "{siteName} 的友链申请已通过审核。",
   "email_webhook_friend_link_rejected_message": "{siteName} 的友链申请未通过：{rejectionReason}",
-  "email_webhook_friend_link_rejected_message_no_reason": "{siteName} 的友链申请未通过。"
+  "email_webhook_friend_link_rejected_message_no_reason": "{siteName} 的友链申请未通过。",
+  "settings_music_add": "添加音乐",
+  "settings_music_title": "歌曲名",
+  "settings_music_title_ph": "歌曲名称",
+  "settings_music_artist": "艺术家",
+  "settings_music_artist_ph": "艺术家名称",
+  "settings_music_cover": "封面图片 URL",
+  "settings_music_cover_ph": "https://example.com/cover.jpg",
+  "settings_music_src": "音频地址",
+  "settings_music_src_ph": "https://example.com/song.mp3"
 }

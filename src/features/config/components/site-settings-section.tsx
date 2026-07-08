@@ -3,6 +3,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { AssetUploadField } from "@/features/config/components/asset-upload-field";
 import { Field } from "@/features/config/components/site-settings-fields";
+import { MusicTracksEditor } from "@/features/config/components/music-editor";
 import { SocialLinksEditor } from "@/features/config/components/social-links-editor";
 import { DefaultThemeSettings } from "@/features/config/components/themes/default-theme-settings";
 import { FuwariThemeSettings } from "@/features/config/components/themes/fuwari-theme-settings";
@@ -161,6 +162,15 @@ export function SiteSettingsSection() {
         })}
       >
         <ThemeSettingsContent />
+      </SectionShell>
+
+      <SectionShell
+        title={m.settings_site_section_music_title()}
+        description={m.settings_site_section_music_desc()}
+      >
+        <div className="md:col-span-2">
+          <MusicTracksEditor />
+        </div>
       </SectionShell>
     </div>
   );

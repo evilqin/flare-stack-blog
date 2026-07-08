@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import { cn } from "@/lib/utils";
+import { MusicPlayer } from "./music-player";
 import { Profile } from "./profile";
 import { Tags, TagsSkeleton } from "./tags";
 
@@ -11,6 +12,12 @@ export function Sidebar({ className }: { className?: string }) {
         style={{ animationDelay: "100ms" }}
       >
         <Profile />
+      </div>
+      <div
+        className="fuwari-onload-animation"
+        style={{ animationDelay: "120ms" }}
+      >
+        <MusicPlayer />
       </div>
       <div
         className="sticky top-4 fuwari-onload-animation"
