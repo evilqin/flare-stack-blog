@@ -33,7 +33,7 @@ function loadSaved(): SavedState {
 }
 
 function formatTime(seconds: number): string {
-  if (!Number.isFinite(seconds)) return "0:00";
+  if (!Number.isFinite(seconds) || seconds < 0) return "0:00";
   const m = Math.floor(seconds / 60);
   const s = Math.floor(seconds % 60);
   return `${m}:${s.toString().padStart(2, "0")}`;
@@ -52,46 +52,19 @@ export const MusicPlayer = memo(function MusicPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume] = useState(saved.volume);
+  const [volume, setVolumeState] = useState(saved.volume);
   const [showPlaylist, setShowPlaylist] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const savedStateRef = useRef<SavedState>(saved);
-
-  // Lazily create Audio element on first user interaction
-  const ensureAudio = useCallback(() => {
-    if (!audioRef.current) {
-      const audio = new Audio();
-      audio.preload = "metadata";
-      audio.volume = savedStateRef.current.volume;
-      audioRef.current = audio;
-
-      const onTimeUpdate = () => setCurrentTime(audio.currentTime);
-      const onDurationChange = () => setDuration(audio.duration || 0);
-      const onEnded = () => {
-        if (currentIndex < tracks.length - 1) {
-          loadTrack(currentIndex + 1, true);
-        } else {
-          setIsPlaying(false);
-          setCurrentTime(0);
-        }
-      };
-      const onError = () => setIsPlaying(false);
-
-      audio.addEventListener("timeupdate", onTimeUpdate);
-      audio.addEventListener("durationchange", onDurationChange);
-      audio.addEventListener("ended", onEnded);
-      audio.addEventListener("error", onError);
-    }
-    return audioRef.current;
-  }, [currentIndex, tracks.length]);
-
-  const currentTrack = tracks[currentIndex];
+  const currentIndexRef = useRef(currentIndex);
+  const tracksLengthRef = useRef(tracks.length);
 
   const saveState = useCallback(
     (index: number, vol: number) => {
-      savedStateRef.current = { trackIndex: index, volume: vol };
       try {
-        localStorage.setItem(LS_KEY, JSON.stringify(savedStateRef.current));
+        localStorage.setItem(
+          LS_KEY,
+          JSON.stringify({ trackIndex: index, volume: vol }),
+        );
       } catch {
         // ignore
       }
@@ -99,9 +72,79 @@ export const MusicPlayer = memo(function MusicPlayer() {
     [],
   );
 
+  // Create Audio element on mount
+  useEffect(() => {
+    const audio = new Audio();
+    audio.preload = "metadata";
+    audioRef.current = audio;
+
+    return () => {
+      audio.pause();
+      audio.src = "";
+    };
+  }, []);
+
+  // Keep refs in sync (avoids stale closures in event listeners)
+  useEffect(() => {
+    currentIndexRef.current = currentIndex;
+  }, [currentIndex]);
+  useEffect(() => {
+    tracksLengthRef.current = tracks.length;
+  }, [tracks.length]);
+
+  // Sync volume to audio element
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.volume = volume;
+    }
+  }, [volume]);
+
+  // Register event listeners (re-register on currentIndex/tracks.length change)
+  useEffect(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+
+    const onTimeUpdate = () => setCurrentTime(audio.currentTime);
+    const onDurationChange = () => setDuration(audio.duration || 0);
+    const onEnded = () => {
+      const nextIndex = currentIndexRef.current + 1;
+      if (nextIndex < tracksLengthRef.current) {
+        const track = tracks[nextIndex];
+        if (track) {
+          audio.src = track.src;
+          audio.load();
+          audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+          setCurrentTime(0);
+          setDuration(0);
+          setCurrentIndex(nextIndex);
+          saveState(nextIndex, audio.volume);
+        }
+      } else {
+        setIsPlaying(false);
+        setCurrentTime(0);
+      }
+    };
+    const onError = () => setIsPlaying(false);
+
+    audio.addEventListener("timeupdate", onTimeUpdate);
+    audio.addEventListener("durationchange", onDurationChange);
+    audio.addEventListener("ended", onEnded);
+    audio.addEventListener("error", onError);
+
+    return () => {
+      audio.removeEventListener("timeupdate", onTimeUpdate);
+      audio.removeEventListener("durationchange", onDurationChange);
+      audio.removeEventListener("ended", onEnded);
+      audio.removeEventListener("error", onError);
+    };
+  }, [currentIndex, tracks.length, tracks, saveState]);
+
+  const currentTrack = tracks[currentIndex];
+
   const loadTrack = useCallback(
     (index: number, play?: boolean) => {
-      const audio = ensureAudio();
+      const audio = audioRef.current;
       if (!audio || !tracks[index]) return;
 
       audio.src = tracks[index].src;
@@ -115,13 +158,13 @@ export const MusicPlayer = memo(function MusicPlayer() {
       setCurrentTime(0);
       setDuration(0);
       setCurrentIndex(index);
-      saveState(index, savedStateRef.current.volume);
+      saveState(index, audio.volume);
     },
-    [tracks, ensureAudio, saveState],
+    [tracks, saveState],
   );
 
   const togglePlay = useCallback(() => {
-    const audio = ensureAudio();
+    const audio = audioRef.current;
     if (!audio || !currentTrack) return;
 
     if (isPlaying) {
@@ -134,7 +177,7 @@ export const MusicPlayer = memo(function MusicPlayer() {
       }
       audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
     }
-  }, [ensureAudio, currentTrack, isPlaying, loadTrack, currentIndex]);
+  }, [currentTrack, isPlaying, loadTrack, currentIndex]);
 
   const playNext = useCallback(() => {
     if (currentIndex < tracks.length - 1) {
@@ -150,40 +193,46 @@ export const MusicPlayer = memo(function MusicPlayer() {
 
   const seek = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
     const audio = audioRef.current;
-    if (!audio || !audio.duration) return;
-    const time = (Number(e.target.value) / 100) * audio.duration;
+    if (!audio || !audio.duration || !Number.isFinite(audio.duration)) return;
+    const pct = Number(e.target.value);
+    const time = (pct / 100) * audio.duration;
+    if (!Number.isFinite(time)) return;
     audio.currentTime = time;
     setCurrentTime(time);
   }, []);
 
-  const setVolume = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    const vol = Number(e.target.value) / 100;
-    audio.volume = vol;
-    saveState(savedStateRef.current.trackIndex, vol);
-  }, [saveState]);
+  const handleVolumeChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const vol = Number(e.target.value) / 100;
+      setVolumeState(vol);
+      saveState(currentIndexRef.current, vol);
+    },
+    [saveState],
+  );
 
   const toggleMute = useCallback(() => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    if (audio.volume > 0) {
-      audio.volume = 0;
-      saveState(savedStateRef.current.trackIndex, 0);
+    if (volume > 0) {
+      setVolumeState(0);
+      saveState(currentIndexRef.current, 0);
     } else {
-      audio.volume = 0.5;
-      saveState(savedStateRef.current.trackIndex, 0.5);
+      setVolumeState(0.5);
+      saveState(currentIndexRef.current, 0.5);
     }
-  }, [saveState]);
+  }, [volume, saveState]);
 
-  const selectTrack = useCallback((index: number) => {
-    setShowPlaylist(false);
-    loadTrack(index, true);
-  }, [loadTrack]);
+  const selectTrack = useCallback(
+    (index: number) => {
+      setShowPlaylist(false);
+      loadTrack(index, true);
+    },
+    [loadTrack],
+  );
 
-  const progressPercent = duration > 0 ? (currentTime / duration) * 100 : 0;
-  const vol = audioRef.current?.volume ?? volume;
-  const VolumeIcon = vol === 0 ? VolumeX : vol < 0.5 ? Volume1 : Volume2;
+  const progressPercent =
+    duration > 0 && Number.isFinite(duration)
+      ? (currentTime / duration) * 100
+      : 0;
+  const VolumeIcon = volume === 0 ? VolumeX : volume < 0.5 ? Volume1 : Volume2;
 
   // Empty state
   if (!tracks.length) {
@@ -265,9 +314,7 @@ export const MusicPlayer = memo(function MusicPlayer() {
                 {index + 1}
               </span>
               <div className="min-w-0 flex-1">
-                <p className="text-xs font-medium truncate">
-                  {track.title}
-                </p>
+                <p className="text-xs font-medium truncate">{track.title}</p>
                 <p className="text-[10px] fuwari-text-50 truncate">
                   {track.artist}
                 </p>
@@ -328,7 +375,11 @@ export const MusicPlayer = memo(function MusicPlayer() {
           className="h-10 w-10 flex items-center justify-center rounded-xl bg-(--fuwari-primary) text-white hover:opacity-90 active:scale-90 transition-all shadow-sm"
           aria-label={isPlaying ? "暂停" : "播放"}
         >
-          {isPlaying ? <Pause size={18} fill="white" /> : <Play size={18} fill="white" className="ml-0.5" />}
+          {isPlaying ? (
+            <Pause size={18} fill="white" />
+          ) : (
+            <Play size={18} fill="white" className="ml-0.5" />
+          )}
         </button>
 
         <button
@@ -347,8 +398,8 @@ export const MusicPlayer = memo(function MusicPlayer() {
             min={0}
             max={100}
             step={1}
-            value={Math.round(vol * 100)}
-            onChange={setVolume}
+            value={Math.round(volume * 100)}
+            onChange={handleVolumeChange}
             className="w-full h-1 appearance-none rounded-full bg-(--fuwari-btn-regular-bg) accent-(--fuwari-primary) cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-(--fuwari-primary)"
             aria-label="音量调节"
           />
