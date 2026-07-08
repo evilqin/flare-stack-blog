@@ -1471,5 +1471,12 @@
   "settings_music_cover": "封面图片 URL",
   "settings_music_cover_ph": "https://example.com/cover.jpg",
   "settings_music_src": "音频地址",
-  "settings_music_src_ph": "https://example.com/song.mp3"
+  "settings_music_src_ph": "https://example.com/song.mp3",
+  "settings_site_section_quotes_title": "随机语录",
+  "settings_site_section_quotes_desc": "添加语录，它们会在侧边栏随机展示。每次进入页面或点击刷新按钮会切换。",
+  "settings_quote_add": "添加语录",
+  "settings_quote_content": "语录内容",
+  "settings_quote_content_ph": "语录文字...",
+  "settings_quote_author": "作者",
+  "settings_quote_author_ph": "作者名称"
 }

@@ -1479,5 +1479,12 @@
   "settings_music_cover": "Cover Image URL",
   "settings_music_cover_ph": "https://example.com/cover.jpg",
   "settings_music_src": "Audio URL",
-  "settings_music_src_ph": "https://example.com/song.mp3"
+  "settings_music_src_ph": "https://example.com/song.mp3",
+  "settings_site_section_quotes_title": "Random Quotes",
+  "settings_site_section_quotes_desc": "Add quotes that will be randomly displayed in the sidebar. Refresh on each page visit or click the refresh button.",
+  "settings_quote_add": "Add quote",
+  "settings_quote_content": "Quote",
+  "settings_quote_content_ph": "The quote text...",
+  "settings_quote_author": "Author",
+  "settings_quote_author_ph": "Author name"
 }

@@ -17,6 +17,12 @@ export const MusicTrackSchema = z.object({
   src: z.string().min(1),
 });
 
+export const QuoteSchema = z.object({
+  id: z.string(),
+  content: z.string().min(1),
+  author: z.string().min(1),
+});
+
 export const DEFAULT_THEME_OPACITY_MIN = 0;
 export const DEFAULT_THEME_OPACITY_MAX = 0.4;
 export const DEFAULT_THEME_BLUR_MIN = 0;
@@ -296,6 +302,7 @@ export const FullSiteConfigSchema = z.object({
   description: createSiteTextSchema(300),
   social: z.array(SocialLinkSchema),
   music: z.array(MusicTrackSchema).optional(),
+  quotes: z.array(QuoteSchema).optional(),
   icons: z.object({
     faviconSvg: createAssetPathSchema(),
     faviconIco: createAssetPathSchema(),
@@ -317,6 +324,7 @@ export function createSiteConfigInputFormSchema(messages: Messages) {
     description: createSiteTextFormSchema(300, messages).optional(),
     social: z.array(SocialLinkSchema).optional(),
     music: z.array(MusicTrackSchema).optional(),
+    quotes: z.array(QuoteSchema).optional(),
     icons: z
       .object({
         faviconSvg: createOptionalAssetPathFormSchema(messages).optional(),
@@ -379,3 +387,4 @@ export type FuwariThemeSiteConfigInput = z.infer<
 export type SiteConfig = z.infer<typeof FullSiteConfigSchema>;
 export type SiteConfigInput = z.infer<typeof SiteConfigInputSchema>;
 export type MusicTrack = z.infer<typeof MusicTrackSchema>;
+export type Quote = z.infer<typeof QuoteSchema>;

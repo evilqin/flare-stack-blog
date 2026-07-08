@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { AssetUploadField } from "@/features/config/components/asset-upload-field";
 import { Field } from "@/features/config/components/site-settings-fields";
 import { MusicTracksEditor } from "@/features/config/components/music-editor";
+import { QuotesEditor } from "@/features/config/components/quotes-editor";
 import { SocialLinksEditor } from "@/features/config/components/social-links-editor";
 import { DefaultThemeSettings } from "@/features/config/components/themes/default-theme-settings";
 import { FuwariThemeSettings } from "@/features/config/components/themes/fuwari-theme-settings";
@@ -170,6 +171,15 @@ export function SiteSettingsSection() {
       >
         <div className="md:col-span-2">
           <MusicTracksEditor />
+        </div>
+      </SectionShell>
+
+      <SectionShell
+        title={m.settings_site_section_quotes_title()}
+        description={m.settings_site_section_quotes_desc()}
+      >
+        <div className="md:col-span-2">
+          <QuotesEditor />
         </div>
       </SectionShell>
     </div>

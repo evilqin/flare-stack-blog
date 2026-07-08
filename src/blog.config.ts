@@ -11,6 +11,7 @@ export const blogConfig = {
     { platform: "rss", url: "/rss.xml" },
   ],
   music: [],
+  quotes: [],
   icons: {
     faviconSvg: "/favicon.svg",
     faviconIco: "/favicon.ico",
