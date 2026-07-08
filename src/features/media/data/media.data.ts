@@ -32,6 +32,7 @@ const DEFAULT_PAGE_SIZE = 20;
  * @param limit - 每页数量
  * @param search - 搜索文件名
  * @param unusedOnly - 是否只显示未被引用的媒体
+ * @param mimeType - 过滤媒体类型 ("all" | "image" | "audio")
  */
 export async function getMediaList(
   db: DB,
@@ -40,6 +41,7 @@ export async function getMediaList(
     limit?: number;
     search?: string;
     unusedOnly?: boolean;
+    mimeType?: "all" | "image" | "audio";
   },
 ): Promise<{ items: Array<Media>; nextCursor: number | null }> {
   const {
@@ -47,6 +49,7 @@ export async function getMediaList(
     limit = DEFAULT_PAGE_SIZE,
     search,
     unusedOnly,
+    mimeType = "all",
   } = options ?? {};
 
   // 构建条件
@@ -57,6 +60,9 @@ export async function getMediaList(
   if (search) {
     const pattern = `%${escapeLikeString(search)}%`;
     conditions.push(sql`${MediaTable.fileName} LIKE ${pattern} ESCAPE '\\'`);
+  }
+  if (mimeType !== "all") {
+    conditions.push(sql`${MediaTable.mimeType} LIKE ${mimeType + "/%"}`);
   }
 
   // 基础查询

@@ -62,6 +62,7 @@ export const GetMediaListInputSchema = z.object({
   limit: z.number().optional(),
   search: z.string().optional(),
   unusedOnly: z.boolean().optional(),
+  mimeType: z.enum(["all", "image", "audio"]).optional().catch("all"),
 });
 
 export type UpdateMediaNameInput = z.infer<typeof UpdateMediaNameInputSchema>;

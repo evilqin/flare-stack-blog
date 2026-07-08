@@ -21,6 +21,8 @@ export function MediaLibrary() {
     setSearchQuery,
     unusedOnly,
     setUnusedOnly,
+    mimeType,
+    setMimeType,
     selectedIds,
     toggleSelection,
     selectAll,
@@ -91,6 +93,8 @@ export function MediaLibrary() {
           onSearchChange={setSearchQuery}
           unusedOnly={unusedOnly}
           onUnusedOnlyChange={setUnusedOnly}
+          mimeType={mimeType}
+          onMimeTypeChange={setMimeType}
           selectedCount={selectedIds.size}
           totalCount={mediaItems.length}
           onSelectAll={selectAll}

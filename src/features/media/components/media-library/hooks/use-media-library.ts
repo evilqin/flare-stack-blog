@@ -24,7 +24,7 @@ import { Route } from "@/routes/admin/media";
 export function useMediaLibrary() {
   const queryClient = useQueryClient();
   const navigate = useNavigate({ from: Route.fullPath });
-  const { search, unused } = Route.useSearch();
+  const { search, unused, type } = Route.useSearch();
 
   // Search Param Handlers
   const setSearchQuery = (term: string) => {
@@ -37,6 +37,12 @@ export function useMediaLibrary() {
   const setUnusedOnly = (val: boolean) => {
     navigate({
       search: (prev) => ({ ...prev, unused: val }),
+    });
+  };
+
+  const setMimeType = (val: "all" | "image" | "audio") => {
+    navigate({
+      search: (prev) => ({ ...prev, type: val }),
     });
   };
 
@@ -57,7 +63,7 @@ export function useMediaLibrary() {
     isPending,
     refetch,
   } = useInfiniteQuery({
-    ...mediaInfiniteQueryOptions(debouncedSearch, unused),
+    ...mediaInfiniteQueryOptions(debouncedSearch, unused, type ?? "all"),
   });
 
   // Flatten all pages into a single array
@@ -88,7 +94,7 @@ export function useMediaLibrary() {
   useEffect(() => {
     setSelectedKeys(new Set());
     setDeleteTarget(null);
-  }, [debouncedSearch, unused]);
+  }, [debouncedSearch, unused, type]);
 
   // Delete mutation
   const deleteMutation = useMutation({
@@ -228,6 +234,8 @@ export function useMediaLibrary() {
     setSearchQuery,
     unusedOnly: unused ?? false,
     setUnusedOnly,
+    mimeType: type ?? "all",
+    setMimeType,
     selectedIds: selectedKeys, // 保持接口兼容
     toggleSelection,
     selectAll,
