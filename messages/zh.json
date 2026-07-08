@@ -852,7 +852,7 @@
     {
       "declarations": ["input maxSizeMb"],
       "match": {
-        "maxSizeMb=*": "支持 JPEG/JPG/PNG/WEBP/GIF (最大 {maxSizeMb}MB)"
+        "maxSizeMb=*": "支持图片与音频 (最大 {maxSizeMb}MB)"
       }
     }
   ],

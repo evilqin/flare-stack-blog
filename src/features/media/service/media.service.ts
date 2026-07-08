@@ -4,10 +4,12 @@ import type {
   GetMediaListInput,
   UpdateMediaNameInput,
 } from "@/features/media/media.schema";
+import { ACCEPTED_IMAGE_TYPES } from "@/features/media/media.schema";
 import { getImageDimensions } from "@/features/media/utils/image-dimensions";
 import {
   buildTransformOptions,
   getContentTypeFromKey,
+  isAudioKey,
 } from "@/features/media/utils/media.utils";
 import * as PostMediaRepo from "@/features/posts/data/post-media.data";
 import { CACHE_CONTROL } from "@/lib/constants";
@@ -19,7 +21,9 @@ export async function upload(
 ) {
   const { file } = input;
 
-  const dimensions = getImageDimensions(await file.arrayBuffer());
+  // Only extract image dimensions for image files; audio files get null dimensions
+  const isImage = ACCEPTED_IMAGE_TYPES.includes(file.type);
+  const dimensions = isImage ? getImageDimensions(await file.arrayBuffer()) : null;
   const width = dimensions?.width;
   const height = dimensions?.height;
 
@@ -129,13 +133,10 @@ export async function handleImageRequest(
   key: string,
   request: Request,
 ) {
-  const url = new URL(request.url);
-  const searchParams = url.searchParams;
-
   const serveOriginal = async () => {
     const object = await env.R2.get(key);
     if (!object) {
-      return new Response("Image not found", { status: 404 });
+      return new Response("Not found", { status: 404 });
     }
 
     const contentType =
@@ -150,6 +151,14 @@ export async function handleImageRequest(
 
     return new Response(object.body, { headers });
   };
+
+  // Audio files: serve directly, no image processing
+  if (isAudioKey(key)) {
+    return await serveOriginal();
+  }
+
+  const url = new URL(request.url);
+  const searchParams = url.searchParams;
 
   // 1. 防止循环调用 & 显式请求原图
   const viaHeader = request.headers.get("via");

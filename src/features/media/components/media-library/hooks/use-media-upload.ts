@@ -28,7 +28,7 @@ export function useMediaUpload() {
   const uploadMutation = useMutation({
     mutationFn: async (file: File) => {
       const formData = new FormData();
-      formData.append("image", file);
+      formData.append("file", file);
       return await uploadImageFn({ data: formData });
     },
   });

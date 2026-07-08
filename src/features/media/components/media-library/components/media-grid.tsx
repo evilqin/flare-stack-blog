@@ -1,4 +1,4 @@
-import { Check, Film, Image as ImageIcon } from "lucide-react";
+import { Check, Film, Image as ImageIcon, Music } from "lucide-react";
 import { memo, useEffect, useRef, useState } from "react";
 import { getOptimizedImageUrl } from "@/features/media/utils/media.utils";
 import { formatBytes } from "@/lib/utils";
@@ -24,6 +24,7 @@ const MediaCard = memo(
     isSelected,
     isLinked,
     isImage,
+    isAudio,
     onToggleSelect,
     onPreview,
     selectionModeActive,
@@ -32,6 +33,7 @@ const MediaCard = memo(
     isSelected: boolean;
     isLinked: boolean;
     isImage: boolean;
+    isAudio?: boolean;
     onToggleSelect: (key: string) => void;
     onPreview: (asset: MediaAsset) => void;
     selectionModeActive: boolean;
@@ -127,6 +129,10 @@ const MediaCard = memo(
                 onLoad={() => setIsLoaded(true)}
               />
             </>
+          ) : isAudio ? (
+            <div className="w-full h-full flex items-center justify-center bg-muted/10">
+              <Music size={28} strokeWidth={1} className="text-muted-foreground" />
+            </div>
           ) : (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground">
               <Film size={24} strokeWidth={1} />
@@ -219,6 +225,7 @@ export function MediaGrid({
           const isSelected = selectedIds.has(asset.key);
           const isLinked = linkedMediaIds.has(asset.key);
           const isImage = asset.mimeType.startsWith("image/");
+          const isAudio = asset.mimeType.startsWith("audio/");
 
           return (
             <MediaCard
@@ -227,6 +234,7 @@ export function MediaGrid({
               isSelected={isSelected}
               isLinked={isLinked}
               isImage={isImage}
+              isAudio={isAudio}
               onToggleSelect={onToggleSelect}
               onPreview={onPreview}
               selectionModeActive={selectionModeActive}

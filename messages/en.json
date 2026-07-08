@@ -859,7 +859,7 @@
     {
       "declarations": ["input maxSizeMb"],
       "match": {
-        "maxSizeMb=*": "Supports JPEG/JPG/PNG/WEBP/GIF (Max {maxSizeMb}MB)"
+        "maxSizeMb=*": "Supports images & audio (Max {maxSizeMb}MB)"
       }
     }
   ],

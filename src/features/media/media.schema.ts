@@ -1,7 +1,7 @@
 import { z } from "zod";
 import type { Messages } from "@/lib/i18n";
 
-export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
+export const MAX_FILE_SIZE = 50 * 1024 * 1024; // 50MB (images + audio)
 export const ACCEPTED_IMAGE_TYPES = [
   "image/jpeg",
   "image/jpg",
@@ -9,18 +9,30 @@ export const ACCEPTED_IMAGE_TYPES = [
   "image/webp",
   "image/gif",
 ];
+export const ACCEPTED_AUDIO_TYPES = [
+  "audio/mpeg",
+  "audio/mp3",
+  "audio/mp4",
+  "audio/aac",
+  "audio/ogg",
+  "audio/wav",
+  "audio/flac",
+  "audio/x-m4a",
+];
 
 export const UploadMediaInputSchema = z.instanceof(FormData);
 
 export function parseUploadMediaInput(formData: FormData, messages: Messages) {
-  const file = formData.get("image");
+  const file = formData.get("file");
   if (!(file instanceof File)) {
     throw new Error(messages.media_validation_file_required());
   }
   if (file.size > MAX_FILE_SIZE) {
     throw new Error(messages.media_validation_file_too_large());
   }
-  if (!ACCEPTED_IMAGE_TYPES.includes(file.type)) {
+  const isImage = ACCEPTED_IMAGE_TYPES.includes(file.type);
+  const isAudio = ACCEPTED_AUDIO_TYPES.includes(file.type);
+  if (!isImage && !isAudio) {
     throw new Error(messages.media_validation_file_invalid_type());
   }
 

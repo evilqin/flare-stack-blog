@@ -11,6 +11,7 @@ import {
   Layout,
   Link2,
   Loader2,
+  Music,
   Pencil,
   Trash2,
   X,
@@ -98,6 +99,8 @@ export function MediaPreviewModal({
     }
   };
 
+  const isAudio = activeAsset?.mimeType.startsWith("audio/");
+
   const handleCopyLink = async () => {
     if (!activeAsset) return;
     try {
@@ -164,16 +167,32 @@ export function MediaPreviewModal({
         } duration-500
       `}
       >
-        {/* --- Image Viewport (Left/Top) --- */}
+        {/* --- Media Viewport (Left/Top) --- */}
         <div className="h-[40vh] md:h-auto md:w-2/3 bg-muted/5 relative flex items-center justify-center overflow-hidden p-8 md:p-12 border-b md:border-b-0 md:border-r border-border/30">
           <div className="absolute top-4 left-4 text-xs font-mono text-muted-foreground uppercase tracking-widest z-20">
-            {m.media_preview_mode()}
+            {isAudio ? "Audio" : m.media_preview_mode()}
           </div>
-          <img
-            src={activeAsset.url}
-            alt={activeAsset.fileName}
-            className="max-w-full max-h-full object-contain relative z-10 shadow-sm"
-          />
+          {isAudio ? (
+            <div className="w-full max-w-md flex flex-col items-center gap-6 relative z-10">
+              <div className="w-24 h-24 rounded-full bg-muted flex items-center justify-center">
+                <Music size={48} className="text-muted-foreground" />
+              </div>
+              <audio
+                controls
+                src={activeAsset.url}
+                className="w-full h-12"
+                preload="metadata"
+              >
+                Your browser does not support the audio element.
+              </audio>
+            </div>
+          ) : (
+            <img
+              src={activeAsset.url}
+              alt={activeAsset.fileName}
+              className="max-w-full max-h-full object-contain relative z-10 shadow-sm"
+            />
+          )}
         </div>
 
         {/* --- Metadata Sidebar (Right/Bottom) --- */}

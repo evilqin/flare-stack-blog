@@ -8,8 +8,19 @@ export function getContentTypeFromKey(key: string): string | undefined {
     gif: "image/gif",
     svg: "image/svg+xml",
     avif: "image/avif",
+    mp3: "audio/mpeg",
+    m4a: "audio/x-m4a",
+    aac: "audio/aac",
+    ogg: "audio/ogg",
+    wav: "audio/wav",
+    flac: "audio/flac",
   };
   return contentTypes[extension || ""];
+}
+
+export function isAudioKey(key: string): boolean {
+  const extension = key.split(".").pop()?.toLowerCase();
+  return ["mp3", "m4a", "aac", "ogg", "wav", "flac"].includes(extension || "");
 }
 
 export function generateKey(fileName: string): string {
