@@ -57,6 +57,7 @@ export const MusicPlayer = memo(function MusicPlayer() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentIndexRef = useRef(currentIndex);
   const tracksLengthRef = useRef(tracks.length);
+  const volumeRef = useRef(saved.volume);
 
   const saveState = useCallback(
     (index: number, vol: number) => {
@@ -92,13 +93,13 @@ export const MusicPlayer = memo(function MusicPlayer() {
     tracksLengthRef.current = tracks.length;
   }, [tracks.length]);
 
-  // Sync volume to audio element
+  // Sync volume to audio element on mount
   useEffect(() => {
     const audio = audioRef.current;
     if (audio) {
-      audio.volume = volume;
+      audio.volume = volumeRef.current;
     }
-  }, [volume]);
+  }, []);
 
   // Register event listeners (re-register on currentIndex/tracks.length change)
   useEffect(() => {
@@ -201,9 +202,19 @@ export const MusicPlayer = memo(function MusicPlayer() {
     setCurrentTime(time);
   }, []);
 
-  const handleVolumeChange = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      const vol = Number(e.target.value) / 100;
+  const handleVolumeInput = useCallback(
+    (e: React.FormEvent<HTMLInputElement>) => {
+      const vol = Number(e.currentTarget.value) / 100;
+      volumeRef.current = vol;
+      const audio = audioRef.current;
+      if (audio) audio.volume = vol;
+    },
+    [],
+  );
+
+  const commitVolume = useCallback(
+    (e: React.MouseEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement>) => {
+      const vol = Number(e.currentTarget.value) / 100;
       setVolumeState(vol);
       saveState(currentIndexRef.current, vol);
     },
@@ -211,14 +222,21 @@ export const MusicPlayer = memo(function MusicPlayer() {
   );
 
   const toggleMute = useCallback(() => {
-    if (volume > 0) {
+    const cur = volumeRef.current;
+    if (cur > 0) {
+      volumeRef.current = 0;
+      const audio = audioRef.current;
+      if (audio) audio.volume = 0;
       setVolumeState(0);
       saveState(currentIndexRef.current, 0);
     } else {
+      volumeRef.current = 0.5;
+      const audio = audioRef.current;
+      if (audio) audio.volume = 0.5;
       setVolumeState(0.5);
       saveState(currentIndexRef.current, 0.5);
     }
-  }, [volume, saveState]);
+  }, [saveState]);
 
   const selectTrack = useCallback(
     (index: number) => {
@@ -398,8 +416,10 @@ export const MusicPlayer = memo(function MusicPlayer() {
             min={0}
             max={100}
             step={1}
-            value={Math.round(volume * 100)}
-            onChange={handleVolumeChange}
+            defaultValue={Math.round(volume * 100)}
+            onInput={handleVolumeInput}
+            onMouseUp={commitVolume}
+            onTouchEnd={commitVolume}
             className="w-full h-1 appearance-none rounded-full bg-(--fuwari-btn-regular-bg) accent-(--fuwari-primary) cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-(--fuwari-primary)"
             aria-label="音量调节"
           />
