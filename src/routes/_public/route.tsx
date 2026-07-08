@@ -13,17 +13,25 @@ import { m } from "@/paraglide/messages";
 export const Route = createFileRoute("/_public")({
   loader: ({ context }) => ({
     preloadImages: getThemePreloadImages(context.siteConfig),
+    musicPreload: context.siteConfig?.music?.length
+      ? { href: context.siteConfig.music[0].src }
+      : null,
   }),
   component: PublicLayout,
   headers: () => {
     return CACHE_CONTROL.public;
   },
   head: ({ loaderData }) => ({
-    links: (loaderData?.preloadImages ?? []).map((href) => ({
-      rel: "preload" as const,
-      as: "image",
-      href,
-    })),
+    links: [
+      ...(loaderData?.preloadImages ?? []).map((href) => ({
+        rel: "preload" as const,
+        as: "image" as const,
+        href,
+      })),
+      ...(loaderData?.musicPreload
+        ? [{ rel: "prefetch" as const, href: loaderData.musicPreload.href, as: "audio" as const }]
+        : []),
+    ],
   }),
 });
 

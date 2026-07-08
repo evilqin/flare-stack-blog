@@ -135,6 +135,7 @@ export async function handleImageRequest(
 ) {
   const serveOriginal = async () => {
     const object = await env.R2.get(key);
+
     if (!object) {
       return new Response("Not found", { status: 404 });
     }
@@ -148,13 +149,19 @@ export async function handleImageRequest(
     object.writeHttpMetadata(headers);
     headers.set("Content-Type", contentType);
     headers.set("ETag", object.httpEtag);
+    headers.set("Accept-Ranges", "bytes");
 
     return new Response(object.body, { headers });
   };
 
-  // Audio files: serve directly, no image processing
+  // Audio files: serve directly with CDN caching, no image processing
   if (isAudioKey(key)) {
-    return await serveOriginal();
+    const response = await serveOriginal();
+    const newResponse = new Response(response.body, response);
+    Object.entries(CACHE_CONTROL.immutable).forEach(([k, v]) => {
+      newResponse.headers.set(k, v);
+    });
+    return newResponse;
   }
 
   const url = new URL(request.url);
