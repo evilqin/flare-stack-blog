@@ -75,7 +75,7 @@ export function MobileMenu({
               }}
               style={{ transitionDelay: isOpen ? `${50 + idx * 50}ms` : "0ms" }}
             >
-              {({ isActive }) => (
+              {({ isActive }: { isActive: boolean }) => (
                 <>
                   <span
                     className={`text-sm md:text-base text-muted-foreground/50 transition-colors ${
