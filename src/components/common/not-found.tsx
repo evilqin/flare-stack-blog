@@ -2,17 +2,17 @@ import { useNavigate } from "@tanstack/react-router";
 import { useCallback, useState } from "react";
 import { m } from "@/paraglide/messages";
 
-/* ─── Mini-Game: 彩蛋收集 ─── */
-const EGG_COLORS = [
+/* ─── Mini-Game: 星星收集 ─── */
+const STAR_COLORS = [
   "bg-pink-400/30 hover:bg-pink-400/60",
   "bg-sky-400/30 hover:bg-sky-400/60",
   "bg-amber-400/30 hover:bg-amber-400/60",
   "bg-emerald-400/30 hover:bg-emerald-400/60",
   "bg-violet-400/30 hover:bg-violet-400/60",
 ];
-const EGG_EMOJIS = ["🥚", "🐣", "🐥", "🥚", "🐣"];
+const STAR_EMOJIS = ["⭐", "🌟", "✨", "⭐", "🌟"];
 
-function FloatingEgg({
+function FloatingStar({
   index,
   onCollect,
   collected,
@@ -38,16 +38,16 @@ function FloatingEgg({
     <button
       type="button"
       onClick={onCollect}
-      className={`absolute z-10 w-8 h-8 md:w-10 md:h-10 rounded-full ${EGG_COLORS[index]} flex items-center justify-center text-sm transition-all duration-300 hover:scale-125 hover:shadow-lg animate-in fade-in slide-in-from-bottom-2`}
+      className={`absolute z-10 w-8 h-8 md:w-10 md:h-10 rounded-full ${STAR_COLORS[index]} flex items-center justify-center text-sm transition-all duration-300 hover:scale-150 hover:shadow-lg hover:shadow-current animate-in fade-in slide-in-from-bottom-2`}
       style={{
         ...pos,
         animationDelay: `${delay}ms`,
         animationDuration: "600ms",
       }}
-      aria-label="Collect egg"
+      aria-label="Collect star"
     >
-      <span className="opacity-70 group-hover:opacity-100">
-        {EGG_EMOJIS[index]}
+      <span className="opacity-80 group-hover:opacity-100">
+        {STAR_EMOJIS[index]}
       </span>
     </button>
   );
@@ -56,7 +56,7 @@ function FloatingEgg({
 /* ─── Main Component ─── */
 export function NotFound() {
   const navigate = useNavigate();
-  const [collectedEggs, setCollectedEggs] = useState<Set<number>>(new Set());
+  const [collectedStars, setCollectedStars] = useState<Set<number>>(new Set());
   const [digitEmojis, setDigitEmojis] = useState<Record<number, string | null>>(
     {
       0: null,
@@ -67,7 +67,7 @@ export function NotFound() {
   const [showCompletion, setShowCompletion] = useState(false);
 
   const handleCollect = useCallback((index: number) => {
-    setCollectedEggs((prev) => {
+    setCollectedStars((prev) => {
       const next = new Set(prev);
       next.add(index);
       if (next.size >= 5) {
@@ -93,7 +93,7 @@ export function NotFound() {
     }, 800);
   }, []);
 
-  const allCollected = collectedEggs.size >= 5;
+  const allCollected = collectedStars.size >= 5;
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen w-full p-6 text-center bg-background relative overflow-hidden">
@@ -101,9 +101,9 @@ export function NotFound() {
       {showCompletion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 animate-in fade-in duration-300">
           <div className="text-center space-y-4 animate-in zoom-in-150 duration-500">
-            <div className="text-5xl">🎉🐥🌈</div>
+            <div className="text-5xl">🌟✨⭐</div>
             <h3 className="text-xl font-serif font-medium">
-              All eggs hatched!
+              All stars collected!
             </h3>
             <button
               onClick={() => navigate({ to: "/" })}
@@ -115,13 +115,13 @@ export function NotFound() {
         </div>
       )}
 
-      {/* Floating eggs */}
+      {/* Floating stars */}
       {Array.from({ length: 5 }, (_, i) => (
-        <FloatingEgg
+        <FloatingStar
           key={i}
           index={i}
           onCollect={() => handleCollect(i)}
-          collected={collectedEggs.has(i)}
+          collected={collectedStars.has(i)}
         />
       ))}
 
@@ -164,9 +164,9 @@ export function NotFound() {
         <p className="text-[10px] font-mono text-muted-foreground/40">
           {allCollected
             ? "✨ All collected! ✨"
-            : collectedEggs.size > 0
-              ? `Collected ${collectedEggs.size}/5 eggs — keep looking around!`
-              : "Found something colorful? Click it! 🥚"}
+            : collectedStars.size > 0
+              ? `Collected ${collectedStars.size}/5 stars — keep looking around!`
+              : "See something sparkling? Click it! ⭐"}
         </p>
 
         {/* Return button */}
