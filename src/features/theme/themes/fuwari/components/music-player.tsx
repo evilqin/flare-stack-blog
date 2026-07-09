@@ -156,6 +156,7 @@ export const MusicPlayer = memo(function MusicPlayer() {
 
   // Attempt autoplay when component mounts (if enabled)
   const autoplayAttemptedRef = useRef(false);
+  const [autoplayBlocked, setAutoplayBlocked] = useState(false);
   useEffect(() => {
     if (!autoplay || autoplayAttemptedRef.current || !tracks.length) return;
     autoplayAttemptedRef.current = true;
@@ -175,13 +176,48 @@ export const MusicPlayer = memo(function MusicPlayer() {
           setIsPlaying(true);
         })
         .catch(() => {
-          // Browser blocked autoplay — silently ignore
+          // Browser blocked autoplay — set flag so we can retry on first click
+          setAutoplayBlocked(true);
           setIsPlaying(false);
         });
     }, 500);
 
     return () => clearTimeout(timer);
   }, [autoplay, tracks.length, currentTrack]);
+
+  // Retry autoplay on first user interaction if browser blocked it
+  useEffect(() => {
+    if (!autoplayBlocked) return;
+
+    const handler = () => {
+      const audio = audioRef.current;
+      if (!audio || !currentTrack) return;
+      if (audio.src !== currentTrack.src) {
+        audio.src = currentTrack.src;
+        audio.load();
+      }
+      audio
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+          setAutoplayBlocked(false);
+        })
+        .catch(() => {
+          // Still blocked, try again next interaction
+        });
+      // Remove listener after first attempt
+      document.removeEventListener("click", handler);
+      document.removeEventListener("touchstart", handler);
+    };
+
+    document.addEventListener("click", handler, { once: true });
+    document.addEventListener("touchstart", handler, { once: true });
+
+    return () => {
+      document.removeEventListener("click", handler);
+      document.removeEventListener("touchstart", handler);
+    };
+  }, [autoplayBlocked, currentTrack]);
 
   const toggleAutoplay = useCallback(() => {
     setAutoplay((prev) => {
@@ -443,8 +479,15 @@ export const MusicPlayer = memo(function MusicPlayer() {
           <button
             type="button"
             onClick={togglePlay}
-            className="h-10 w-10 flex items-center justify-center rounded-xl bg-(--fuwari-primary) text-white hover:opacity-90 active:scale-90 transition-all shadow-sm"
-            aria-label={isPlaying ? "暂停" : "播放"}
+            className={cn(
+              "h-10 w-10 flex items-center justify-center rounded-xl text-white hover:opacity-90 active:scale-90 transition-all shadow-sm",
+              autoplayBlocked
+                ? "bg-(--fuwari-primary) animate-pulse"
+                : "bg-(--fuwari-primary)",
+            )}
+            aria-label={
+              autoplayBlocked ? "点击播放音乐" : isPlaying ? "暂停" : "播放"
+            }
           >
             {isPlaying ? (
               <Pause size={18} fill="white" />
@@ -530,8 +573,15 @@ export const MusicPlayer = memo(function MusicPlayer() {
         <button
           type="button"
           onClick={togglePlay}
-          className="h-10 w-10 flex items-center justify-center rounded-xl bg-(--fuwari-primary) text-white hover:opacity-90 active:scale-90 transition-all shadow-sm"
-          aria-label={isPlaying ? "暂停" : "播放"}
+          className={cn(
+            "h-10 w-10 flex items-center justify-center rounded-xl text-white hover:opacity-90 active:scale-90 transition-all shadow-sm",
+            autoplayBlocked
+              ? "bg-(--fuwari-primary) animate-pulse"
+              : "bg-(--fuwari-primary)",
+          )}
+          aria-label={
+            autoplayBlocked ? "点击播放音乐" : isPlaying ? "暂停" : "播放"
+          }
         >
           {isPlaying ? (
             <Pause size={18} fill="white" />
