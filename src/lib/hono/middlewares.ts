@@ -185,6 +185,10 @@ export const shieldMiddleware = createMiddleware(async (c, next) => {
   if (isPathValid(path)) {
     return next();
   }
+  // GET/HEAD 请求放行到 TanStack Start，让其渲染自定义 404 页面
+  if (c.req.method === "GET" || c.req.method === "HEAD") {
+    return next();
+  }
   const response = c.text("Not Found", 404);
   // 只缓存 Shield 拦截的 404，保护正常 404
   Object.entries(CACHE_CONTROL.notFound).forEach(([k, v]) => {
