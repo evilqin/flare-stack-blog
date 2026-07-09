@@ -154,48 +154,45 @@ export const MusicPlayer = memo(function MusicPlayer() {
 
   const currentTrack = tracks[currentIndex];
 
-  // Attempt autoplay when component mounts (if enabled)
-  const autoplayAttemptedRef = useRef(false);
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
+
+  // Attempt autoplay when component mounts (if enabled).
+  // No artificial delay — the browser only allows autoplay if there's no
+  // user-gesture requirement on this session, so waiting doesn't help.
   useEffect(() => {
-    if (!autoplay || autoplayAttemptedRef.current || !tracks.length) return;
-    autoplayAttemptedRef.current = true;
+    if (!autoplay || !tracks.length || !currentTrack) return;
 
     const audio = audioRef.current;
-    if (!audio || !currentTrack) return;
+    if (!audio) return;
 
-    // Small delay to let the component settle, then try autoplay
-    const timer = setTimeout(() => {
-      if (audio.src !== currentTrack.src) {
-        audio.src = currentTrack.src;
-        audio.load();
-      }
-      audio
-        .play()
-        .then(() => {
-          setIsPlaying(true);
-        })
-        .catch(() => {
-          // Browser blocked autoplay — set flag so we can retry on first click
-          setAutoplayBlocked(true);
-          setIsPlaying(false);
-        });
-    }, 500);
+    // Already playing (e.g. user manually switched tracks) — don't restart
+    if (!audio.paused) return;
 
-    return () => clearTimeout(timer);
+    if (audio.src !== currentTrack.src) {
+      audio.src = currentTrack.src;
+      audio.load();
+    }
+    audio
+      .play()
+      .then(() => {
+        setIsPlaying(true);
+      })
+      .catch(() => {
+        // Browser blocked autoplay — show pulse indicator on the play button
+        setAutoplayBlocked(true);
+        setIsPlaying(false);
+      });
   }, [autoplay, tracks.length, currentTrack]);
 
-  // Retry autoplay on first user interaction if browser blocked it
+  // Retry autoplay on the very first user interaction.
+  // Registered on mount so we never miss the user's first click
+  // (the previous approach registered the handler *after* autoplay failed,
+  // which created a race window where the click could arrive first).
   useEffect(() => {
-    if (!autoplayBlocked) return;
-
     const handler = () => {
       const audio = audioRef.current;
-      if (!audio || !currentTrack) return;
-      if (audio.src !== currentTrack.src) {
-        audio.src = currentTrack.src;
-        audio.load();
-      }
+      // Only retry if audio is paused (not already playing successfully)
+      if (!audio || !audio.src || !audio.paused) return;
       audio
         .play()
         .then(() => {
@@ -203,11 +200,8 @@ export const MusicPlayer = memo(function MusicPlayer() {
           setAutoplayBlocked(false);
         })
         .catch(() => {
-          // Still blocked, try again next interaction
+          // Still blocked — nothing more we can do on first click
         });
-      // Remove listener after first attempt
-      document.removeEventListener("click", handler);
-      document.removeEventListener("touchstart", handler);
     };
 
     document.addEventListener("click", handler, { once: true });
@@ -217,7 +211,7 @@ export const MusicPlayer = memo(function MusicPlayer() {
       document.removeEventListener("click", handler);
       document.removeEventListener("touchstart", handler);
     };
-  }, [autoplayBlocked, currentTrack]);
+  }, []);
 
   const toggleAutoplay = useCallback(() => {
     setAutoplay((prev) => {
