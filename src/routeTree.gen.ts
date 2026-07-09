@@ -30,10 +30,13 @@ import { Route as AuthForgotPasswordRouteImport } from './routes/_auth/forgot-pa
 import { Route as AdminPostsRouteRouteImport } from './routes/admin/posts/route'
 import { Route as AdminTagsIndexRouteImport } from './routes/admin/tags/index'
 import { Route as AdminSettingsIndexRouteImport } from './routes/admin/settings/index'
+import { Route as AdminSeriesIndexRouteImport } from './routes/admin/series/index'
 import { Route as AdminPostsIndexRouteImport } from './routes/admin/posts/index'
 import { Route as AdminMediaIndexRouteImport } from './routes/admin/media/index'
 import { Route as AdminFriendLinksIndexRouteImport } from './routes/admin/friend-links/index'
 import { Route as AdminCommentsIndexRouteImport } from './routes/admin/comments/index'
+import { Route as PublicSeriesIndexRouteImport } from './routes/_public/series/index'
+import { Route as PublicSeriesSeriesIdRouteImport } from './routes/_public/series/$seriesId'
 import { Route as PublicPostSlugRouteImport } from './routes/_public/post/$slug'
 import { Route as AdminPostsEditIdRouteImport } from './routes/admin/posts/edit.$id'
 
@@ -139,6 +142,11 @@ const AdminSettingsIndexRoute = AdminSettingsIndexRouteImport.update({
   path: '/settings/',
   getParentRoute: () => AdminRouteRoute,
 } as any)
+const AdminSeriesIndexRoute = AdminSeriesIndexRouteImport.update({
+  id: '/series/',
+  path: '/series/',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 const AdminPostsIndexRoute = AdminPostsIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -158,6 +166,16 @@ const AdminCommentsIndexRoute = AdminCommentsIndexRouteImport.update({
   id: '/comments/',
   path: '/comments/',
   getParentRoute: () => AdminRouteRoute,
+} as any)
+const PublicSeriesIndexRoute = PublicSeriesIndexRouteImport.update({
+  id: '/series/',
+  path: '/series/',
+  getParentRoute: () => PublicRouteRoute,
+} as any)
+const PublicSeriesSeriesIdRoute = PublicSeriesSeriesIdRouteImport.update({
+  id: '/series/$seriesId',
+  path: '/series/$seriesId',
+  getParentRoute: () => PublicRouteRoute,
 } as any)
 const PublicPostSlugRoute = PublicPostSlugRouteImport.update({
   id: '/post/$slug',
@@ -188,10 +206,13 @@ export interface FileRoutesByFullPath {
   '/oauth/consent': typeof OauthConsentRoute
   '/admin/': typeof AdminIndexRoute
   '/post/$slug': typeof PublicPostSlugRoute
+  '/series/$seriesId': typeof PublicSeriesSeriesIdRoute
+  '/series/': typeof PublicSeriesIndexRoute
   '/admin/comments/': typeof AdminCommentsIndexRoute
   '/admin/friend-links/': typeof AdminFriendLinksIndexRoute
   '/admin/media/': typeof AdminMediaIndexRoute
   '/admin/posts/': typeof AdminPostsIndexRoute
+  '/admin/series/': typeof AdminSeriesIndexRoute
   '/admin/settings/': typeof AdminSettingsIndexRoute
   '/admin/tags/': typeof AdminTagsIndexRoute
   '/admin/posts/edit/$id': typeof AdminPostsEditIdRoute
@@ -212,10 +233,13 @@ export interface FileRoutesByTo {
   '/oauth/consent': typeof OauthConsentRoute
   '/admin': typeof AdminIndexRoute
   '/post/$slug': typeof PublicPostSlugRoute
+  '/series/$seriesId': typeof PublicSeriesSeriesIdRoute
+  '/series': typeof PublicSeriesIndexRoute
   '/admin/comments': typeof AdminCommentsIndexRoute
   '/admin/friend-links': typeof AdminFriendLinksIndexRoute
   '/admin/media': typeof AdminMediaIndexRoute
   '/admin/posts': typeof AdminPostsIndexRoute
+  '/admin/series': typeof AdminSeriesIndexRoute
   '/admin/settings': typeof AdminSettingsIndexRoute
   '/admin/tags': typeof AdminTagsIndexRoute
   '/admin/posts/edit/$id': typeof AdminPostsEditIdRoute
@@ -242,10 +266,13 @@ export interface FileRoutesById {
   '/_public/': typeof PublicIndexRoute
   '/admin/': typeof AdminIndexRoute
   '/_public/post/$slug': typeof PublicPostSlugRoute
+  '/_public/series/$seriesId': typeof PublicSeriesSeriesIdRoute
+  '/_public/series/': typeof PublicSeriesIndexRoute
   '/admin/comments/': typeof AdminCommentsIndexRoute
   '/admin/friend-links/': typeof AdminFriendLinksIndexRoute
   '/admin/media/': typeof AdminMediaIndexRoute
   '/admin/posts/': typeof AdminPostsIndexRoute
+  '/admin/series/': typeof AdminSeriesIndexRoute
   '/admin/settings/': typeof AdminSettingsIndexRoute
   '/admin/tags/': typeof AdminTagsIndexRoute
   '/admin/posts/edit/$id': typeof AdminPostsEditIdRoute
@@ -270,10 +297,13 @@ export interface FileRouteTypes {
     | '/oauth/consent'
     | '/admin/'
     | '/post/$slug'
+    | '/series/$seriesId'
+    | '/series/'
     | '/admin/comments/'
     | '/admin/friend-links/'
     | '/admin/media/'
     | '/admin/posts/'
+    | '/admin/series/'
     | '/admin/settings/'
     | '/admin/tags/'
     | '/admin/posts/edit/$id'
@@ -294,10 +324,13 @@ export interface FileRouteTypes {
     | '/oauth/consent'
     | '/admin'
     | '/post/$slug'
+    | '/series/$seriesId'
+    | '/series'
     | '/admin/comments'
     | '/admin/friend-links'
     | '/admin/media'
     | '/admin/posts'
+    | '/admin/series'
     | '/admin/settings'
     | '/admin/tags'
     | '/admin/posts/edit/$id'
@@ -323,10 +356,13 @@ export interface FileRouteTypes {
     | '/_public/'
     | '/admin/'
     | '/_public/post/$slug'
+    | '/_public/series/$seriesId'
+    | '/_public/series/'
     | '/admin/comments/'
     | '/admin/friend-links/'
     | '/admin/media/'
     | '/admin/posts/'
+    | '/admin/series/'
     | '/admin/settings/'
     | '/admin/tags/'
     | '/admin/posts/edit/$id'
@@ -489,6 +525,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminSettingsIndexRouteImport
       parentRoute: typeof AdminRouteRoute
     }
+    '/admin/series/': {
+      id: '/admin/series/'
+      path: '/series'
+      fullPath: '/admin/series/'
+      preLoaderRoute: typeof AdminSeriesIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
     '/admin/posts/': {
       id: '/admin/posts/'
       path: '/'
@@ -516,6 +559,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/admin/comments/'
       preLoaderRoute: typeof AdminCommentsIndexRouteImport
       parentRoute: typeof AdminRouteRoute
+    }
+    '/_public/series/': {
+      id: '/_public/series/'
+      path: '/series'
+      fullPath: '/series/'
+      preLoaderRoute: typeof PublicSeriesIndexRouteImport
+      parentRoute: typeof PublicRouteRoute
+    }
+    '/_public/series/$seriesId': {
+      id: '/_public/series/$seriesId'
+      path: '/series/$seriesId'
+      fullPath: '/series/$seriesId'
+      preLoaderRoute: typeof PublicSeriesSeriesIdRouteImport
+      parentRoute: typeof PublicRouteRoute
     }
     '/_public/post/$slug': {
       id: '/_public/post/$slug'
@@ -561,6 +618,8 @@ interface PublicRouteRouteChildren {
   PublicUnsubscribeRoute: typeof PublicUnsubscribeRoute
   PublicIndexRoute: typeof PublicIndexRoute
   PublicPostSlugRoute: typeof PublicPostSlugRoute
+  PublicSeriesSeriesIdRoute: typeof PublicSeriesSeriesIdRoute
+  PublicSeriesIndexRoute: typeof PublicSeriesIndexRoute
 }
 
 const PublicRouteRouteChildren: PublicRouteRouteChildren = {
@@ -570,6 +629,8 @@ const PublicRouteRouteChildren: PublicRouteRouteChildren = {
   PublicUnsubscribeRoute: PublicUnsubscribeRoute,
   PublicIndexRoute: PublicIndexRoute,
   PublicPostSlugRoute: PublicPostSlugRoute,
+  PublicSeriesSeriesIdRoute: PublicSeriesSeriesIdRoute,
+  PublicSeriesIndexRoute: PublicSeriesIndexRoute,
 }
 
 const PublicRouteRouteWithChildren = PublicRouteRoute._addFileChildren(
@@ -610,6 +671,7 @@ interface AdminRouteRouteChildren {
   AdminCommentsIndexRoute: typeof AdminCommentsIndexRoute
   AdminFriendLinksIndexRoute: typeof AdminFriendLinksIndexRoute
   AdminMediaIndexRoute: typeof AdminMediaIndexRoute
+  AdminSeriesIndexRoute: typeof AdminSeriesIndexRoute
   AdminSettingsIndexRoute: typeof AdminSettingsIndexRoute
   AdminTagsIndexRoute: typeof AdminTagsIndexRoute
 }
@@ -620,6 +682,7 @@ const AdminRouteRouteChildren: AdminRouteRouteChildren = {
   AdminCommentsIndexRoute: AdminCommentsIndexRoute,
   AdminFriendLinksIndexRoute: AdminFriendLinksIndexRoute,
   AdminMediaIndexRoute: AdminMediaIndexRoute,
+  AdminSeriesIndexRoute: AdminSeriesIndexRoute,
   AdminSettingsIndexRoute: AdminSettingsIndexRoute,
   AdminTagsIndexRoute: AdminTagsIndexRoute,
 }

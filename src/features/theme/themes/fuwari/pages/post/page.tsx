@@ -1,6 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { Clock, FileText, Pencil } from "lucide-react";
 import { Suspense } from "react";
+import { AdjacentPostsNav } from "@/components/common/adjacent-posts";
+import { ReadingProgressBar } from "@/components/common/reading-progress";
+import { SeriesBadge } from "@/components/common/series-badge";
 import type { PostPageProps } from "@/features/theme/contract/pages";
 import { FuwariCommentSection } from "@/features/theme/themes/fuwari/components/comments/view/comment-section";
 import { ContentRenderer } from "@/features/theme/themes/fuwari/components/content/content-renderer";
@@ -11,13 +14,15 @@ import { PostSummary } from "./components/post-summary";
 import { RelatedPosts, RelatedPostsSkeleton } from "./components/related-posts";
 import TableOfContents from "./components/table-of-contents";
 
-export function PostPage({ post }: PostPageProps) {
+export function PostPage({ post, adjacentPosts }: PostPageProps) {
   const { data: session } = authClient.useSession();
   // Approximate word count
   const wordCount = post.readTimeInMinutes * 300;
 
   return (
     <div className="relative flex flex-col rounded-(--fuwari-radius-large) py-1 md:py-0 md:bg-transparent gap-4 mb-4 w-full">
+      <ReadingProgressBar />
+
       {/* Table Of Contents (Desktop Floating Right) */}
       <div
         className="hidden 2xl:block absolute top-0 h-full pl-4"
@@ -82,6 +87,11 @@ export function PostPage({ post }: PostPageProps) {
           <PostMeta post={post} className="mb-5" />
         </div>
 
+        {/* Series Badge */}
+        <div className="mb-5">
+          <SeriesBadge postId={post.id} />
+        </div>
+
         {/* Summary */}
         <PostSummary summary={post.summary} />
 
@@ -100,12 +110,9 @@ export function PostPage({ post }: PostPageProps) {
         </div>
       </div>
 
-      {/* Prev/Next buttons (Mock implementation for layout, actual data would come from the server in an ideal setup) */}
-      <div
-        className="hidden flex-col md:flex-row justify-between gap-4 overflow-hidden w-full fuwari-onload-animation"
-        style={{ animationDelay: "150ms" }}
-      >
-        {/* Note: the backend schema doesn't currently provide prev/next slugs in PostWithToc. Using placeholder layouts to match Fuwari exactly. */}
+      {/* Adjacent Posts (Prev / Next) */}
+      <div className="fuwari-card-base px-6 md:px-9 py-4 fuwari-onload-animation">
+        <AdjacentPostsNav adjacent={adjacentPosts} />
       </div>
 
       {/* Related Posts */}

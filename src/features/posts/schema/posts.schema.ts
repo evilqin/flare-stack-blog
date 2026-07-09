@@ -126,6 +126,13 @@ export type PostListResponse = z.infer<typeof PostListResponseSchema>;
 export type PostItem = z.infer<typeof PostItemSchema>;
 export type PostWithToc = z.infer<typeof PostWithTocSchema>;
 
+export const AdjacentPostsSchema = z.object({
+  prev: PostItemSchema.nullable(),
+  next: PostItemSchema.nullable(),
+});
+
+export type AdjacentPosts = z.infer<typeof AdjacentPostsSchema>;
+
 export const POSTS_CACHE_KEYS = {
   list: (version: string, limit: number, cursor: number, tagName: string) =>
     ["posts", "list", version, limit, cursor, tagName] as const,
@@ -134,4 +141,6 @@ export const POSTS_CACHE_KEYS = {
     ["posts", "related-ids", slug, limit] as const,
   syncHash: (id: number) => `post_hash:${id}` as const,
   pinned: (version: string) => [version, "posts", "pinned"] as const,
+  adjacent: (version: string, slug: string) =>
+    [version, "posts", "adjacent", slug] as const,
 } as const;

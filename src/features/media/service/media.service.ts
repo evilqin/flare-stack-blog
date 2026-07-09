@@ -23,7 +23,9 @@ export async function upload(
 
   // Only extract image dimensions for image files; audio files get null dimensions
   const isImage = ACCEPTED_IMAGE_TYPES.includes(file.type);
-  const dimensions = isImage ? getImageDimensions(await file.arrayBuffer()) : null;
+  const dimensions = isImage
+    ? getImageDimensions(await file.arrayBuffer())
+    : null;
   const width = dimensions?.width;
   const height = dimensions?.height;
 

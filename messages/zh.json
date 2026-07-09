@@ -3,6 +3,7 @@
   "nav_home": "主页",
   "nav_posts": "文章",
   "nav_friend_links": "友链",
+  "nav_series": "系列",
   "nav_search": "搜索",
   "nav_login": "登录",
   "error_title": "程序发生错误",
@@ -72,6 +73,8 @@
   "post_related_posts": "相关阅读",
   "post_read_more": "阅读",
   "post_back_to_top": "顶部",
+  "post_prev": "上一篇",
+  "post_next": "下一篇",
   "post_word_count": [
     {
       "declarations": ["input count", "local formattedCountZh = count: number"],
@@ -501,6 +504,7 @@
   "admin_sidebar_media": "媒体库",
   "admin_sidebar_comments": "评论管理",
   "admin_sidebar_friend_links": "友链管理",
+  "admin_sidebar_series": "系列管理",
   "admin_sidebar_admin_fallback": "管理员",
   "admin_sidebar_role_admin": "管理员",
   "admin_sidebar_role_user": "用户",

@@ -3,6 +3,7 @@
   "nav_home": "Home",
   "nav_posts": "Posts",
   "nav_friend_links": "Links",
+  "nav_series": "Series",
   "nav_search": "Search",
   "nav_login": "Login",
   "error_title": "An Error Occurred",
@@ -73,6 +74,8 @@
   "post_related_posts": "Related Reading",
   "post_read_more": "Read",
   "post_back_to_top": "Top",
+  "post_prev": "Previous Post",
+  "post_next": "Next Post",
   "post_word_count": [
     {
       "declarations": ["input count", "local formattedCountEn = count: number"],
@@ -508,6 +511,7 @@
   "admin_sidebar_media": "Media",
   "admin_sidebar_comments": "Comments",
   "admin_sidebar_friend_links": "Links",
+  "admin_sidebar_series": "Series",
   "admin_sidebar_admin_fallback": "Admin",
   "admin_sidebar_role_admin": "Administrator",
   "admin_sidebar_role_user": "User",

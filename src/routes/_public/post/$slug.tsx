@@ -5,7 +5,11 @@ import { useEffect } from "react";
 import { z } from "zod";
 import { siteConfigQuery, siteDomainQuery } from "@/features/config/queries";
 import { recordPageViewFn } from "@/features/pageview/api/pageview.api";
-import { postBySlugQuery, relatedPostsQuery } from "@/features/posts/queries";
+import {
+  adjacentPostsQuery,
+  postBySlugQuery,
+  relatedPostsQuery,
+} from "@/features/posts/queries";
 import {
   buildArticleJsonLd,
   buildCanonicalUrl,
@@ -30,10 +34,11 @@ export const Route = createFileRoute("/_public/post/$slug")({
       context.queryClient.ensureQueryData(siteConfigQuery),
     ]);
 
-    // 2. Deferred: Related posts (prefetch only, don't await)
+    // 2. Deferred: Related posts + adjacent posts (prefetch only, don't await)
     void context.queryClient.prefetchQuery(
       relatedPostsQuery(params.slug, relatedPostsLimit),
     );
+    void context.queryClient.prefetchQuery(adjacentPostsQuery(params.slug));
 
     if (!post) throw notFound();
 
@@ -86,6 +91,7 @@ export const Route = createFileRoute("/_public/post/$slug")({
 function RouteComponent() {
   const { slug } = Route.useParams();
   const { data: post } = useSuspenseQuery(postBySlugQuery(slug));
+  const { data: adjacent } = useSuspenseQuery(adjacentPostsQuery(slug));
 
   useEffect(() => {
     if (!post?.id) return;
@@ -101,5 +107,5 @@ function RouteComponent() {
 
   if (!post) throw notFound();
 
-  return <theme.PostPage post={post} />;
+  return <theme.PostPage post={post} adjacentPosts={adjacent} />;
 }

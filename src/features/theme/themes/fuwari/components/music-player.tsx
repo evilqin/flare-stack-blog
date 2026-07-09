@@ -57,9 +57,7 @@ export const MusicPlayer = memo(function MusicPlayer() {
 
   const [saved] = useState(loadSaved);
   const [currentIndex, setCurrentIndex] = useState(
-    tracks.length > 0
-      ? Math.min(saved.trackIndex, tracks.length - 1)
-      : 0,
+    tracks.length > 0 ? Math.min(saved.trackIndex, tracks.length - 1) : 0,
   );
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -72,19 +70,16 @@ export const MusicPlayer = memo(function MusicPlayer() {
   const tracksLengthRef = useRef(tracks.length);
   const volumeRef = useRef(saved.volume);
 
-  const saveState = useCallback(
-    (index: number, vol: number) => {
-      try {
-        localStorage.setItem(
-          LS_KEY,
-          JSON.stringify({ trackIndex: index, volume: vol }),
-        );
-      } catch {
-        // ignore
-      }
-    },
-    [],
-  );
+  const saveState = useCallback((index: number, vol: number) => {
+    try {
+      localStorage.setItem(
+        LS_KEY,
+        JSON.stringify({ trackIndex: index, volume: vol }),
+      );
+    } catch {
+      // ignore
+    }
+  }, []);
 
   // Create Audio element on mount
   useEffect(() => {
@@ -128,7 +123,10 @@ export const MusicPlayer = memo(function MusicPlayer() {
         if (track) {
           audio.src = track.src;
           audio.load();
-          audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+          audio
+            .play()
+            .then(() => setIsPlaying(true))
+            .catch(() => setIsPlaying(false));
           setCurrentTime(0);
           setDuration(0);
           setCurrentIndex(nextIndex);
@@ -171,12 +169,15 @@ export const MusicPlayer = memo(function MusicPlayer() {
         audio.src = currentTrack.src;
         audio.load();
       }
-      audio.play().then(() => {
-        setIsPlaying(true);
-      }).catch(() => {
-        // Browser blocked autoplay — silently ignore
-        setIsPlaying(false);
-      });
+      audio
+        .play()
+        .then(() => {
+          setIsPlaying(true);
+        })
+        .catch(() => {
+          // Browser blocked autoplay — silently ignore
+          setIsPlaying(false);
+        });
     }, 500);
 
     return () => clearTimeout(timer);
@@ -203,7 +204,10 @@ export const MusicPlayer = memo(function MusicPlayer() {
       audio.load();
 
       if (play) {
-        audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+        audio
+          .play()
+          .then(() => setIsPlaying(true))
+          .catch(() => setIsPlaying(false));
       } else {
         setIsPlaying(false);
       }
@@ -227,7 +231,10 @@ export const MusicPlayer = memo(function MusicPlayer() {
         loadTrack(currentIndex, true);
         return;
       }
-      audio.play().then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
+      audio
+        .play()
+        .then(() => setIsPlaying(true))
+        .catch(() => setIsPlaying(false));
     }
   }, [currentTrack, isPlaying, loadTrack, currentIndex]);
 
@@ -264,7 +271,11 @@ export const MusicPlayer = memo(function MusicPlayer() {
   );
 
   const commitVolume = useCallback(
-    (e: React.MouseEvent<HTMLInputElement> | React.TouchEvent<HTMLInputElement>) => {
+    (
+      e:
+        | React.MouseEvent<HTMLInputElement>
+        | React.TouchEvent<HTMLInputElement>,
+    ) => {
       const vol = Number(e.currentTarget.value) / 100;
       setVolumeState(vol);
       saveState(currentIndexRef.current, vol);
@@ -309,9 +320,7 @@ export const MusicPlayer = memo(function MusicPlayer() {
       <div className="fuwari-card-base p-4">
         <div className="flex flex-col items-center justify-center gap-2 py-4">
           <Music size={28} className="fuwari-text-50" />
-          <p className="text-xs fuwari-text-50 text-center">
-            暂无音乐
-          </p>
+          <p className="text-xs fuwari-text-50 text-center">暂无音乐</p>
         </div>
       </div>
     );

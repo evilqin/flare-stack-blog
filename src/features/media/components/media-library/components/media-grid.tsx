@@ -131,7 +131,11 @@ const MediaCard = memo(
             </>
           ) : isAudio ? (
             <div className="w-full h-full flex items-center justify-center bg-muted/10">
-              <Music size={28} strokeWidth={1} className="text-muted-foreground" />
+              <Music
+                size={28}
+                strokeWidth={1}
+                className="text-muted-foreground"
+              />
             </div>
           ) : (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground">

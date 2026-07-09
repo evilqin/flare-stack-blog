@@ -2,6 +2,7 @@ import { Loader2, Pin, PinOff, Sparkles } from "lucide-react";
 import TextareaAutosize from "react-textarea-autosize";
 import DatePicker from "@/components/ui/date-picker";
 import { Input } from "@/components/ui/input";
+import { SeriesSelector } from "@/features/series/components/series-selector";
 import { TagSelector } from "@/features/tags/components/tag-selector";
 import { POST_STATUSES } from "@/lib/db/schema";
 import { toLocalDateString } from "@/lib/utils";
@@ -208,6 +209,16 @@ export function PostEditorMetadata({
           <TagSelector
             value={post.tagIds}
             onChange={(tagIds) => onPostChange({ tagIds })}
+          />
+        </div>
+
+        <div className="col-span-1 space-y-3 md:col-span-3">
+          <label className="text-[9px] font-mono uppercase tracking-widest text-muted-foreground">
+            Series
+          </label>
+          <SeriesSelector
+            value={post.seriesIds}
+            onChange={(seriesIds) => onPostChange({ seriesIds })}
           />
         </div>
 

@@ -1,8 +1,10 @@
 import {
   and,
+  asc,
   count,
   desc,
   eq,
+  gt,
   inArray,
   isNotNull,
   like,
@@ -571,4 +573,85 @@ export async function findFullPosts(
       tags: postTags.map((pt) => pt.tag),
     };
   });
+}
+
+/**
+ * Find adjacent (previous and next) published posts relative to a given post.
+ * Uses publishedAt for ordering.
+ */
+export async function findAdjacentPosts(
+  db: DB,
+  slug: string,
+): Promise<{ prev: PostListItem | null; next: PostListItem | null }> {
+  const currentPost = await db.query.PostsTable.findFirst({
+    where: and(eq(PostsTable.slug, slug), eq(PostsTable.status, "published")),
+    columns: { publishedAt: true, id: true },
+  });
+
+  if (!currentPost?.publishedAt) {
+    return { prev: null, next: null };
+  }
+
+  const { publishedAt, id } = currentPost;
+
+  // Previous post: the most recent published post before current
+  const prevPosts = await db
+    .select({
+      id: PostsTable.id,
+      title: PostsTable.title,
+      summary: PostsTable.summary,
+      slug: PostsTable.slug,
+      publishedAt: PostsTable.publishedAt,
+      createdAt: PostsTable.createdAt,
+      updatedAt: PostsTable.updatedAt,
+      readTimeInMinutes: PostsTable.readTimeInMinutes,
+      status: PostsTable.status,
+      pinnedAt: PostsTable.pinnedAt,
+    })
+    .from(PostsTable)
+    .where(
+      and(
+        eq(PostsTable.status, "published"),
+        isNotNull(PostsTable.publishedAt),
+        or(
+          lt(PostsTable.publishedAt, publishedAt),
+          and(eq(PostsTable.publishedAt, publishedAt), lt(PostsTable.id, id)),
+        ),
+      ),
+    )
+    .orderBy(desc(PostsTable.publishedAt), desc(PostsTable.id))
+    .limit(1);
+
+  // Next post: the earliest published post after current
+  const nextPosts = await db
+    .select({
+      id: PostsTable.id,
+      title: PostsTable.title,
+      summary: PostsTable.summary,
+      slug: PostsTable.slug,
+      publishedAt: PostsTable.publishedAt,
+      createdAt: PostsTable.createdAt,
+      updatedAt: PostsTable.updatedAt,
+      readTimeInMinutes: PostsTable.readTimeInMinutes,
+      status: PostsTable.status,
+      pinnedAt: PostsTable.pinnedAt,
+    })
+    .from(PostsTable)
+    .where(
+      and(
+        eq(PostsTable.status, "published"),
+        isNotNull(PostsTable.publishedAt),
+        or(
+          gt(PostsTable.publishedAt, publishedAt),
+          and(eq(PostsTable.publishedAt, publishedAt), gt(PostsTable.id, id)),
+        ),
+      ),
+    )
+    .orderBy(asc(PostsTable.publishedAt), asc(PostsTable.id))
+    .limit(1);
+
+  const prev = prevPosts[0] ?? null;
+  const next = nextPosts[0] ?? null;
+
+  return { prev, next };
 }

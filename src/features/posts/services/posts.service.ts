@@ -18,6 +18,7 @@ import type {
   UpdatePostInput,
 } from "@/features/posts/schema/posts.schema";
 import {
+  AdjacentPostsSchema,
   POSTS_CACHE_KEYS,
   PostItemSchema,
   PostListResponseSchema,
@@ -164,6 +165,25 @@ export async function getRelatedPosts(
     .filter((p): p is NonNullable<typeof p> => !!p);
 
   return orderedPosts;
+}
+
+export async function getAdjacentPosts(
+  context: DbContext & { executionCtx: ExecutionContext },
+  data: FindPostBySlugInput,
+) {
+  const fetcher = () => PostRepo.findAdjacentPosts(context.db, data.slug);
+
+  const version = await CacheService.getVersion(context, "posts:detail");
+  const cacheKey = POSTS_CACHE_KEYS.adjacent(version, data.slug);
+  return await CacheService.get(
+    context,
+    cacheKey,
+    AdjacentPostsSchema,
+    fetcher,
+    {
+      ttl: "7d",
+    },
+  );
 }
 
 export async function generateSummaryByPostId({

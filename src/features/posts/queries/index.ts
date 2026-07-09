@@ -17,6 +17,7 @@ import {
 import { findPostByIdFn } from "../api/posts.admin.api";
 import {
   findPostBySlugFn,
+  getAdjacentPostsFn,
   getPinnedPostsFn,
   getPopularPostsFn,
   getPostsCursorFn,
@@ -145,6 +146,13 @@ export function relatedPostsQuery(slug: string, limit?: number) {
       }
       return result.data;
     },
+  });
+}
+
+export function adjacentPostsQuery(slug: string) {
+  return queryOptions({
+    queryKey: [...POSTS_KEYS.details, "adjacent", slug],
+    queryFn: () => getAdjacentPostsFn({ data: { slug } }),
   });
 }
 

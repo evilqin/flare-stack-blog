@@ -2,6 +2,9 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { ArrowLeft, ArrowUp, Pencil, Share2, Sparkles } from "lucide-react";
 import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
+import { AdjacentPostsNav } from "@/components/common/adjacent-posts";
+import { ReadingProgressBar } from "@/components/common/reading-progress";
+import { SeriesBadge } from "@/components/common/series-badge";
 import { Button } from "@/components/ui/button";
 import type { PostPageProps } from "@/features/theme/contract/pages";
 import { ContentRenderer } from "@/features/theme/themes/default/components/content/content-renderer";
@@ -12,7 +15,7 @@ import { CommentSection } from "../../components/comments/view/comment-section";
 import { RelatedPosts, RelatedPostsSkeleton } from "./components/related-posts";
 import TableOfContents from "./components/table-of-contents";
 
-export function PostPage({ post }: PostPageProps) {
+export function PostPage({ post, adjacentPosts }: PostPageProps) {
   const navigate = useNavigate();
   const { data: session } = authClient.useSession();
   const [showBackToTop, setShowBackToTop] = useState(false);
@@ -27,6 +30,8 @@ export function PostPage({ post }: PostPageProps) {
 
   return (
     <div className="w-full max-w-3xl mx-auto pb-20 px-6 md:px-0">
+      <ReadingProgressBar />
+
       {/* Back Link */}
       <nav className="py-12 flex items-center justify-between">
         <button
@@ -88,6 +93,9 @@ export function PostPage({ post }: PostPageProps) {
                 </>
               )}
             </div>
+
+            {/* Series Badge */}
+            <SeriesBadge postId={post.id} />
 
             <h1
               className="text-4xl md:text-5xl lg:text-6xl font-serif font-medium leading-[1.1] tracking-tight text-foreground"
@@ -153,6 +161,11 @@ export function PostPage({ post }: PostPageProps) {
               </Button>
             </footer>
           </main>
+        </div>
+
+        {/* Adjacent Posts (Prev / Next) */}
+        <div className="pt-12">
+          <AdjacentPostsNav adjacent={adjacentPosts} />
         </div>
 
         {/* Related Posts */}
