@@ -44,13 +44,20 @@ const tryCacheResponse = (c: Context, cache: Cache) => {
 
   const resCacheControl = c.res.headers.get("Cache-Control");
   const hasSetCookie = c.res.headers.has("Set-Cookie");
+  const contentType = c.res.headers.get("Content-Type") ?? "";
 
   const isStatusCacheable =
     c.res.status === 200 || c.res.status === 404 || c.res.status >= 500;
 
+  // Don't cache HTML pages in Workers Cache API — they contain
+  // versioned asset URLs (CSS/JS hashes) that change between deployments.
+  // Caching them would serve stale HTML referencing old assets → broken page styles.
+  const isHtmlPage = contentType.startsWith("text/html");
+
   const isCacheable =
     isStatusCacheable &&
     !hasSetCookie &&
+    !isHtmlPage &&
     resCacheControl &&
     !resCacheControl.includes("no-store") &&
     !resCacheControl.includes("no-cache") &&
@@ -75,6 +82,30 @@ export const cacheMiddleware = createMiddleware(async (c, next) => {
   // 但包含 public API（/api/posts, /api/post, /api/tags, /api/search）
   const EXCLUDED_PREFIXES = ["/api/auth", "/api/send"];
   if (EXCLUDED_PREFIXES.some((prefix) => path.startsWith(prefix))) {
+    return next();
+  }
+
+  // Only cache known asset/API paths in Workers Cache API.
+  // HTML pages contain versioned asset URLs (CSS/JS hashes) that change between
+  // deployments. Caching them would serve stale HTML → broken page styles.
+  // The CDN edge cache (with s-maxage + purge on deploy) handles page caching instead.
+  const CACHEABLE_PATHS = [
+    "/assets/",
+    "/api/",
+    "/images/",
+    "/favicon",
+    "/stats.js",
+    "/robots.txt",
+    "/site.webmanifest",
+    "/atom.xml",
+    "/feed.json",
+    "/rss.xml",
+    "/sitemap.xml",
+  ];
+  const isCacheablePath = CACHEABLE_PATHS.some((prefix) =>
+    path.startsWith(prefix),
+  );
+  if (!isCacheablePath) {
     return next();
   }
 
