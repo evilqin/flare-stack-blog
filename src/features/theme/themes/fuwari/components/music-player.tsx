@@ -154,6 +154,8 @@ export const MusicPlayer = memo(function MusicPlayer() {
     };
   }, [currentIndex, tracks.length, tracks, saveState]);
 
+  const currentTrack = tracks[currentIndex];
+
   // Attempt autoplay when component mounts (if enabled)
   const autoplayAttemptedRef = useRef(false);
   useEffect(() => {
@@ -191,8 +193,6 @@ export const MusicPlayer = memo(function MusicPlayer() {
       return next;
     });
   }, []);
-
-  const currentTrack = tracks[currentIndex];
 
   const loadTrack = useCallback(
     (index: number, play?: boolean) => {

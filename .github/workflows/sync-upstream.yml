@@ -1,0 +1,127 @@
+name: Sync Upstream
+
+on:
+  schedule:
+    # Run weekly on Monday at 03:00 UTC
+    - cron: '3 3 * * 1'
+  workflow_dispatch:
+    inputs:
+      create_pr_on_conflict:
+        description: 'Create a PR when merge conflicts occur (instead of auto-resolving)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    name: Sync with upstream
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN || github.token }}
+
+      - name: Setup Git
+        run: |
+          git config user.name "evilqin"
+          git config user.email "evilqin@users.noreply.github.com"
+
+      - name: Add upstream remote
+        run: |
+          git remote add upstream https://github.com/du2333/flare-stack-blog.git
+          git fetch upstream
+
+      - name: Check for upstream changes
+        id: check
+        run: |
+          BEHIND=$(git rev-list --count HEAD..upstream/main)
+          echo "Commits behind upstream: $BEHIND"
+          echo "behind=$BEHIND" >> $GITHUB_OUTPUT
+
+      - name: Try merge
+        id: merge
+        if: steps.check.outputs.behind > 0
+        run: |
+          echo "=== Attempting merge ==="
+          MERGE_RESULT=$(git merge upstream/main --no-commit 2>&1 || true)
+          echo "$MERGE_RESULT"
+
+          if echo "$MERGE_RESULT" | grep -q "CONFLICT"; then
+            echo "status=conflict" >> $GITHUB_OUTPUT
+
+            echo "=== Resolving known conflicts ==="
+            # List conflicted files
+            CONFLICTED=$(git diff --name-only --diff-filter=U)
+            echo "Conflicted files:"
+            echo "$CONFLICTED"
+
+            # For custom files that we want to keep our version:
+            KEEP_OURS=(
+              "src/features/theme/themes/fuwari/components/music-player.tsx"
+              "src/features/config/components/music-editor.tsx"
+              "src/features/config/components/quotes-editor.tsx"
+              "src/features/theme/themes/fuwari/components/random-quote.tsx"
+            )
+
+            for file in "${KEEP_OURS[@]}"; do
+              if echo "$CONFLICTED" | grep -q "$file"; then
+                echo "Keeping our version for: $file"
+                git checkout --ours "$file"
+                git add "$file"
+              fi
+            done
+
+            # For all other conflicted files, prefer upstream
+            CONFLICTED=$(git diff --name-only --diff-filter=U)
+            for file in $CONFLICTED; do
+              echo "Accepting upstream version for: $file"
+              git checkout --theirs "$file"
+              git add "$file"
+            done
+
+            echo "conflicted_files<<EOF" >> $GITHUB_OUTPUT
+            echo "$CONFLICTED" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+
+          else
+            echo "status=success" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Commit merge (auto-resolved)
+        if: steps.merge.outputs.status == 'conflict' && github.event.inputs.create_pr_on_conflict != 'true'
+        run: |
+          git commit -m "chore: merge upstream changes (auto-resolved conflicts)"
+          git push origin main
+          echo "Merge committed and pushed."
+
+      - name: Push merge (clean)
+        if: steps.merge.outputs.status == 'success'
+        run: |
+          git commit -m "chore: merge upstream changes"
+          git push origin main
+          echo "Clean merge pushed."
+
+      - name: Create PR for manual resolution
+        if: steps.merge.outputs.status == 'conflict' && github.event.inputs.create_pr_on_conflict == 'true'
+        uses: peter-evans/create-pull-request@v7
+        with:
+          title: 'chore: merge upstream changes (conflicts need resolution)'
+          branch: merge-upstream/auto
+          commit-message: 'chore: merge upstream changes (pending conflict resolution)'
+          body: |
+            This PR was automatically created because the upstream merge had conflicts.
+
+            Please resolve the conflicts before merging.
+
+            Files with conflicts:
+            ${{ steps.merge.outputs.conflicted_files }}
+          labels: automated
+
+      - name: No updates
+        if: steps.check.outputs.behind == 0
+        run: echo "Repository is up to date with upstream. No changes needed."

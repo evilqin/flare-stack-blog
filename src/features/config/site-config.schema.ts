@@ -351,6 +351,7 @@ export const SiteConfigInputSchema = z.object({
   description: createSiteTextSchema(300).optional(),
   social: z.array(SocialLinkSchema).optional(),
   music: z.array(MusicTrackSchema).optional(),
+  quotes: z.array(QuoteSchema).optional(),
   icons: z
     .object({
       faviconSvg: createOptionalAssetPathSchema().optional(),
