@@ -6,4 +6,3 @@ export * from "./media.table";
 export * from "./page-views.table";
 export * from "./post-revisions.table";
 export * from "./posts.table";
-export * from "./series.table";

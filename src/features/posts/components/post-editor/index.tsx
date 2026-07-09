@@ -30,7 +30,6 @@ export function PostEditor({ initialData, onSave }: PostEditorProps) {
     publishedAt: initialData.publishedAt,
     pinnedAt: initialData.pinnedAt,
     tagIds: initialData.tagIds,
-    seriesIds: initialData.seriesIds ?? [],
     isSynced: initialData.isSynced,
     hasPublicCache: initialData.hasPublicCache,
   }));
@@ -136,7 +135,6 @@ export function PostEditor({ initialData, onSave }: PostEditorProps) {
           : null,
         pinnedAt: post.pinnedAt,
         tagIds: snapshot.tagIds,
-        seriesIds: post.seriesIds,
         isSynced: snapshot.status === "draft" ? !hasPublicCache : false,
         hasPublicCache,
       };

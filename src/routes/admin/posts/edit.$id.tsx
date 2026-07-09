@@ -6,11 +6,6 @@ import { PostEditor } from "@/features/posts/components/post-editor";
 import { PostEditorSkeleton } from "@/features/posts/components/post-editor/post-editor-skeleton";
 import type { PostEditorData } from "@/features/posts/components/post-editor/types";
 import { POSTS_KEYS, postByIdQuery } from "@/features/posts/queries";
-import {
-  assignPostToSeriesFn,
-  getSeriesByPostIdFn,
-  removePostFromSeriesFn,
-} from "@/features/series/api/series.api";
 import { setPostTagsFn } from "@/features/tags/api/tags.api";
 import {
   TAGS_KEYS,
@@ -52,12 +47,6 @@ function EditPost() {
   const { data: post } = useQuery(postByIdQuery(postId));
   const { data: tags } = useQuery(tagsByPostIdQueryOptions(postId));
 
-  // Fetch series data for this post
-  const { data: postSeries = [] } = useQuery({
-    queryKey: ["post-series", postId],
-    queryFn: () => getSeriesByPostIdFn({ data: { postId } }),
-  });
-
   if (!post || !tags) {
     return (
       <div className="flex items-center justify-center h-[50vh]">
@@ -83,7 +72,6 @@ function EditPost() {
     contentJson: post.contentJson,
     publishedAt: post.publishedAt,
     tagIds: tags.map((t) => t.id),
-    seriesIds: postSeries.map((s) => s.id),
     pinnedAt: post.pinnedAt,
     isSynced: post.isSynced,
     hasPublicCache: post.hasPublicCache,
@@ -94,16 +82,6 @@ function EditPost() {
       data.status === "published" && !post.publishedAt
         ? new Date()
         : data.publishedAt;
-
-    // Diff series IDs to determine which to add/remove
-    const currentSeriesIds = postSeries.map((s) => s.id);
-    const newSeriesIds = data.seriesIds;
-    const seriesToAdd = newSeriesIds.filter(
-      (id) => !currentSeriesIds.includes(id),
-    );
-    const seriesToRemove = currentSeriesIds.filter(
-      (id) => !newSeriesIds.includes(id),
-    );
 
     // Parallelize updates
     const [updateResult] = await Promise.all([
@@ -122,17 +100,6 @@ function EditPost() {
           tagIds: data.tagIds,
         },
       }),
-      // Sync series assignments
-      ...seriesToAdd.map((seriesId) =>
-        assignPostToSeriesFn({
-          data: { postId: post.id, seriesId },
-        }),
-      ),
-      ...seriesToRemove.map((seriesId) =>
-        removePostFromSeriesFn({
-          data: { postId: post.id, seriesId },
-        }),
-      ),
     ]);
 
     if (updateResult.error) {

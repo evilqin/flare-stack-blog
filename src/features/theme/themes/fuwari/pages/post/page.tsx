@@ -3,7 +3,6 @@ import { Clock, FileText, Pencil } from "lucide-react";
 import { Suspense } from "react";
 import { AdjacentPostsNav } from "@/components/common/adjacent-posts";
 import { ReadingProgressBar } from "@/components/common/reading-progress";
-import { SeriesBadge } from "@/components/common/series-badge";
 import type { PostPageProps } from "@/features/theme/contract/pages";
 import { FuwariCommentSection } from "@/features/theme/themes/fuwari/components/comments/view/comment-section";
 import { ContentRenderer } from "@/features/theme/themes/fuwari/components/content/content-renderer";
@@ -88,9 +87,7 @@ export function PostPage({ post, adjacentPosts }: PostPageProps) {
         </div>
 
         {/* Series Badge */}
-        <div className="mb-5">
-          <SeriesBadge postId={post.id} />
-        </div>
+        <div className="mb-5"></div>
 
         {/* Summary */}
         <PostSummary summary={post.summary} />

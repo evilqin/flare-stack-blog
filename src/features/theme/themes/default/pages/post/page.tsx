@@ -4,7 +4,6 @@ import { Suspense, useEffect, useState } from "react";
 import { toast } from "sonner";
 import { AdjacentPostsNav } from "@/components/common/adjacent-posts";
 import { ReadingProgressBar } from "@/components/common/reading-progress";
-import { SeriesBadge } from "@/components/common/series-badge";
 import { Button } from "@/components/ui/button";
 import type { PostPageProps } from "@/features/theme/contract/pages";
 import { ContentRenderer } from "@/features/theme/themes/default/components/content/content-renderer";
@@ -95,7 +94,6 @@ export function PostPage({ post, adjacentPosts }: PostPageProps) {
             </div>
 
             {/* Series Badge */}
-            <SeriesBadge postId={post.id} />
 
             <h1
               className="text-4xl md:text-5xl lg:text-6xl font-serif font-medium leading-[1.1] tracking-tight text-foreground"

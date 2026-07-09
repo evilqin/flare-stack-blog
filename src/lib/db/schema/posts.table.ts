@@ -8,7 +8,6 @@ import {
   text,
 } from "drizzle-orm/sqlite-core";
 import { createdAt, id, updatedAt } from "./helper";
-import { PostSeriesTable } from "./series.table";
 
 export const POST_STATUSES = ["draft", "published"] as const;
 
@@ -62,7 +61,6 @@ export const PostTagsTable = sqliteTable(
 // ==================== relations ====================
 export const postsRelations = relations(PostsTable, ({ many }) => ({
   postTags: many(PostTagsTable),
-  postSeries: many(PostSeriesTable),
 }));
 
 export const tagsRelations = relations(TagsTable, ({ many }) => ({
