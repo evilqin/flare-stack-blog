@@ -1,6 +1,7 @@
 import { useRouteContext } from "@tanstack/react-router";
 import {
   Disc3,
+  Headphones,
   ListMusic,
   Music,
   Pause,
@@ -16,6 +17,7 @@ import type { MusicTrack } from "@/features/config/site-config.schema";
 import { cn } from "@/lib/utils";
 
 const LS_KEY = "fuwari-music-player";
+const LS_AUTOPLAY_KEY = "fuwari-music-autoplay";
 
 interface SavedState {
   trackIndex: number;
@@ -30,6 +32,16 @@ function loadSaved(): SavedState {
     // ignore
   }
   return { trackIndex: 0, volume: 0.5 };
+}
+
+function loadAutoplayPref(): boolean {
+  try {
+    const raw = localStorage.getItem(LS_AUTOPLAY_KEY);
+    if (raw !== null) return JSON.parse(raw);
+  } catch {
+    // ignore
+  }
+  return true; // default: autoplay on
 }
 
 function formatTime(seconds: number): string {
@@ -54,6 +66,7 @@ export const MusicPlayer = memo(function MusicPlayer() {
   const [duration, setDuration] = useState(0);
   const [volume, setVolumeState] = useState(saved.volume);
   const [showPlaylist, setShowPlaylist] = useState(false);
+  const [autoplay, setAutoplay] = useState(loadAutoplayPref);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentIndexRef = useRef(currentIndex);
   const tracksLengthRef = useRef(tracks.length);
@@ -140,6 +153,44 @@ export const MusicPlayer = memo(function MusicPlayer() {
       audio.removeEventListener("error", onError);
     };
   }, [currentIndex, tracks.length, tracks, saveState]);
+
+  // Attempt autoplay when component mounts (if enabled)
+  const autoplayAttemptedRef = useRef(false);
+  useEffect(() => {
+    if (!autoplay || autoplayAttemptedRef.current || !tracks.length) return;
+    autoplayAttemptedRef.current = true;
+
+    const audio = audioRef.current;
+    if (!audio || !currentTrack) return;
+
+    // Small delay to let the component settle, then try autoplay
+    const timer = setTimeout(() => {
+      if (audio.src !== currentTrack.src) {
+        audio.src = currentTrack.src;
+        audio.load();
+      }
+      audio.play().then(() => {
+        setIsPlaying(true);
+      }).catch(() => {
+        // Browser blocked autoplay — silently ignore
+        setIsPlaying(false);
+      });
+    }, 500);
+
+    return () => clearTimeout(timer);
+  }, [autoplay, tracks.length, currentTrack]);
+
+  const toggleAutoplay = useCallback(() => {
+    setAutoplay((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(LS_AUTOPLAY_KEY, JSON.stringify(next));
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  }, []);
 
   const currentTrack = tracks[currentIndex];
 
@@ -366,8 +417,88 @@ export const MusicPlayer = memo(function MusicPlayer() {
         </span>
       </div>
 
-      {/* Controls */}
-      <div className="flex items-center justify-center gap-1 pb-3">
+      {/* Controls — responsive layout */}
+      {/* Mobile: two rows */}
+      <div className="sm:hidden pb-3">
+        <div className="flex items-center justify-center gap-1">
+          <button
+            type="button"
+            onClick={playPrev}
+            disabled={currentIndex === 0}
+            className="h-8 w-8 flex items-center justify-center rounded-lg fuwari-text-50 hover:text-(--fuwari-primary) hover:bg-(--fuwari-btn-regular-bg) active:scale-90 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+            aria-label="上一首"
+          >
+            <SkipBack size={16} />
+          </button>
+
+          <button
+            type="button"
+            onClick={togglePlay}
+            className="h-10 w-10 flex items-center justify-center rounded-xl bg-(--fuwari-primary) text-white hover:opacity-90 active:scale-90 transition-all shadow-sm"
+            aria-label={isPlaying ? "暂停" : "播放"}
+          >
+            {isPlaying ? (
+              <Pause size={18} fill="white" />
+            ) : (
+              <Play size={18} fill="white" className="ml-0.5" />
+            )}
+          </button>
+
+          <button
+            type="button"
+            onClick={playNext}
+            disabled={currentIndex >= tracks.length - 1}
+            className="h-8 w-8 flex items-center justify-center rounded-lg fuwari-text-50 hover:text-(--fuwari-primary) hover:bg-(--fuwari-btn-regular-bg) active:scale-90 transition-colors disabled:opacity-30 disabled:pointer-events-none"
+            aria-label="下一首"
+          >
+            <SkipForward size={16} />
+          </button>
+        </div>
+
+        <div className="flex items-center justify-center gap-2 px-4 mt-2">
+          <button
+            type="button"
+            onClick={toggleMute}
+            className="h-7 w-7 shrink-0 flex items-center justify-center rounded-lg fuwari-text-50 hover:text-(--fuwari-primary) hover:bg-(--fuwari-btn-regular-bg) active:scale-90 transition-colors"
+            aria-label="音量"
+          >
+            <VolumeIcon size={13} />
+          </button>
+
+          <div className="flex-1 max-w-32">
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={1}
+              defaultValue={Math.round(volume * 100)}
+              onInput={handleVolumeInput}
+              onMouseUp={commitVolume}
+              onTouchEnd={commitVolume}
+              className="w-full h-1 appearance-none rounded-full bg-(--fuwari-btn-regular-bg) accent-(--fuwari-primary) cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-(--fuwari-primary)"
+              aria-label="音量调节"
+            />
+          </div>
+
+          <button
+            type="button"
+            onClick={toggleAutoplay}
+            className={cn(
+              "h-7 w-7 shrink-0 flex items-center justify-center rounded-lg transition-colors active:scale-90",
+              autoplay
+                ? "text-(--fuwari-primary) bg-(--fuwari-btn-regular-bg)"
+                : "fuwari-text-50 hover:text-(--fuwari-primary) hover:bg-(--fuwari-btn-regular-bg)",
+            )}
+            aria-label={autoplay ? "自动播放已开启" : "自动播放已关闭"}
+            title={autoplay ? "自动播放已开启" : "自动播放已关闭"}
+          >
+            <Headphones size={13} />
+          </button>
+        </div>
+      </div>
+
+      {/* Desktop: single row */}
+      <div className="hidden sm:flex items-center justify-center gap-1 pb-3">
         <button
           type="button"
           onClick={toggleMute}
@@ -410,7 +541,7 @@ export const MusicPlayer = memo(function MusicPlayer() {
           <SkipForward size={16} />
         </button>
 
-        <div className="w-20 hidden sm:block">
+        <div className="w-20">
           <input
             type="range"
             min={0}
@@ -424,6 +555,21 @@ export const MusicPlayer = memo(function MusicPlayer() {
             aria-label="音量调节"
           />
         </div>
+
+        <button
+          type="button"
+          onClick={toggleAutoplay}
+          className={cn(
+            "h-8 w-8 flex items-center justify-center rounded-lg transition-colors active:scale-90",
+            autoplay
+              ? "text-(--fuwari-primary) bg-(--fuwari-btn-regular-bg)"
+              : "fuwari-text-50 hover:text-(--fuwari-primary) hover:bg-(--fuwari-btn-regular-bg)",
+          )}
+          aria-label={autoplay ? "自动播放已开启" : "自动播放已关闭"}
+          title={autoplay ? "自动播放已开启" : "自动播放已关闭"}
+        >
+          <Headphones size={14} />
+        </button>
       </div>
     </div>
   );

@@ -14,6 +14,7 @@ import { CommentModerationWorkflow } from "@/features/comments/workflows/comment
 import * as WorkflowHelpers from "@/features/comments/workflows/helpers";
 import { DEFAULT_CONFIG } from "@/features/config/config.schema";
 import * as ConfigRepo from "@/features/config/data/config.data";
+import * as ConfigService from "@/features/config/service/config.service";
 import * as EmailData from "@/features/email/data/email.data";
 import * as PostService from "@/features/posts/services/posts.service";
 import { CommentsTable } from "@/lib/db/schema";
@@ -494,7 +495,7 @@ describe("Comments Integration", () => {
       });
 
       it("should enqueue both email and webhook when both channels are enabled", async () => {
-        await ConfigRepo.upsertSystemConfig(adminContext.db, {
+        await ConfigService.updateSystemConfig(adminContext, {
           ...DEFAULT_CONFIG,
           notification: {
             ...DEFAULT_CONFIG.notification,
@@ -534,7 +535,7 @@ describe("Comments Integration", () => {
       });
 
       it("should enqueue admin webhook without email when admin email is disabled", async () => {
-        await ConfigRepo.upsertSystemConfig(adminContext.db, {
+        await ConfigService.updateSystemConfig(adminContext, {
           ...DEFAULT_CONFIG,
           notification: {
             ...DEFAULT_CONFIG.notification,
@@ -580,7 +581,7 @@ describe("Comments Integration", () => {
       });
 
       it("should only enqueue webhook for endpoints subscribed to the event", async () => {
-        await ConfigRepo.upsertSystemConfig(adminContext.db, {
+        await ConfigService.updateSystemConfig(adminContext, {
           ...DEFAULT_CONFIG,
           notification: {
             ...DEFAULT_CONFIG.notification,
@@ -634,7 +635,7 @@ describe("Comments Integration", () => {
       });
 
       it("should not enqueue webhook for disabled endpoints", async () => {
-        await ConfigRepo.upsertSystemConfig(adminContext.db, {
+        await ConfigService.updateSystemConfig(adminContext, {
           ...DEFAULT_CONFIG,
           notification: {
             ...DEFAULT_CONFIG.notification,
@@ -702,7 +703,7 @@ describe("Comments Integration", () => {
       });
 
       it("should skip user reply notification when user email notifications are disabled", async () => {
-        await ConfigRepo.upsertSystemConfig(adminContext.db, {
+        await ConfigService.updateSystemConfig(adminContext, {
           ...DEFAULT_CONFIG,
           notification: {
             ...DEFAULT_CONFIG.notification,
@@ -860,7 +861,7 @@ describe("Comments Integration", () => {
       });
 
       it("should skip reply notification via moderateComment when admin email is disabled", async () => {
-        await ConfigRepo.upsertSystemConfig(adminContext.db, {
+        await ConfigService.updateSystemConfig(adminContext, {
           ...DEFAULT_CONFIG,
           notification: {
             ...DEFAULT_CONFIG.notification,
@@ -904,7 +905,7 @@ describe("Comments Integration", () => {
       });
 
       it("should still emit admin webhook when reply notifications are unsubscribed", async () => {
-        await ConfigRepo.upsertSystemConfig(adminContext.db, {
+        await ConfigService.updateSystemConfig(adminContext, {
           ...DEFAULT_CONFIG,
           notification: {
             ...DEFAULT_CONFIG.notification,

@@ -21,3 +21,4 @@ wrangler.jsonc
 docs/superpowers/
 .cache/
 *.tsbuildinfo
+.fallow

@@ -4,7 +4,7 @@ import {
   SCAN_LIMIT,
   SNIPPET_CONTEXT,
   SNIPPET_SLICE,
-} from "../service/search.service";
+} from "@/features/search/search.constants";
 
 type OramaHit = Awaited<ReturnType<typeof search>>["hits"][number];
 

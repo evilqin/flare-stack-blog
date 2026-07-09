@@ -1,4 +1,5 @@
-import { env, runDurableObjectAlarm } from "cloudflare:test";
+import { runDurableObjectAlarm } from "cloudflare:test";
+import { env } from "cloudflare:workers";
 import { testRequest } from "tests/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 

@@ -21,7 +21,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
+
+      - name: Setup Node
+        uses: actions/setup-node@v6
+        with:
+          node-version: 24
 
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
@@ -29,7 +34,7 @@ jobs:
           bun-version: latest
 
       - name: Cache dependencies
-        uses: actions/cache@v3
+        uses: actions/cache@v5
         with:
           path: ~/.bun/install/cache
           key: ${{ runner.os }}-bun-${{ hashFiles('**/bun.lock') }}
@@ -42,7 +47,7 @@ jobs:
       # === Original repo: fetch secrets from Vault ===
       - name: "[Vault] Import cloudflare secrets"
         if: github.repository == 'du2333/flare-stack-blog'
-        uses: hashicorp/vault-action@v3
+        uses: hashicorp/vault-action@v4
         with:
           url: https://vault.dukda.com
           token: ${{ secrets.VAULT_TOKEN }}
@@ -51,7 +56,7 @@ jobs:
 
       - name: "[Vault] Import runtime secrets"
         if: github.repository == 'du2333/flare-stack-blog'
-        uses: hashicorp/vault-action@v3
+        uses: hashicorp/vault-action@v4
         with:
           url: https://vault.dukda.com
           token: ${{ secrets.VAULT_TOKEN }}

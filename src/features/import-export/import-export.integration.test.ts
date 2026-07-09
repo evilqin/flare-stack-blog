@@ -1,4 +1,4 @@
-import { env } from "cloudflare:test";
+import { env } from "cloudflare:workers";
 import type { JSONContent } from "@tiptap/react";
 import { beforeEach, describe, expect, it } from "vitest";
 import type { PostFrontmatter } from "@/features/import-export/import-export.schema";

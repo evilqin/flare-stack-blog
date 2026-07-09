@@ -7,6 +7,10 @@ import {
   getOramaMeta,
   persistOramaDb,
 } from "@/features/search/model/store";
+import {
+  CONTENT_SLICE,
+  SNIPPET_SLICE,
+} from "@/features/search/search.constants";
 import type {
   DeleteSearchDocInput,
   SearchQueryInput,
@@ -17,12 +21,6 @@ import {
   getMatchedTerms,
 } from "@/features/search/utils/search.utils";
 import { PostsTable } from "@/lib/db/schema";
-
-export const CONTENT_SLICE = 10000;
-export const SNIPPET_SLICE = 200;
-export const SNIPPET_CONTEXT = 60;
-export const SCAN_LIMIT = CONTENT_SLICE;
-export const FUZZY_MAX_DISTANCE = 1;
 
 export async function search(context: DbContext, data: SearchQueryInput) {
   const db = await getOramaDb(context.env);

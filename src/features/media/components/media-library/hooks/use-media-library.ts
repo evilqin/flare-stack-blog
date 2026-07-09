@@ -4,7 +4,7 @@ import {
   useQuery,
   useQueryClient,
 } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useSearch } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -19,12 +19,11 @@ import {
 } from "@/features/media/queries";
 import { useDebounce } from "@/hooks/use-debounce";
 import { m } from "@/paraglide/messages";
-import { Route } from "@/routes/admin/media";
 
 export function useMediaLibrary() {
   const queryClient = useQueryClient();
-  const navigate = useNavigate({ from: Route.fullPath });
-  const { search, unused, type } = Route.useSearch();
+  const navigate = useNavigate({ from: "/admin/media/" });
+  const { search, unused, type } = useSearch({ from: "/admin/media/" });
 
   // Search Param Handlers
   const setSearchQuery = (term: string) => {

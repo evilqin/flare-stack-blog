@@ -9,6 +9,7 @@ import {
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_CONFIG } from "@/features/config/config.schema";
 import * as ConfigRepo from "@/features/config/data/config.data";
+import * as ConfigService from "@/features/config/service/config.service";
 import * as FriendLinkService from "./friend-links.service";
 
 describe("FriendLinkService", () => {
@@ -71,7 +72,7 @@ describe("FriendLinkService", () => {
     });
 
     it("should send admin webhook without email when admin email is disabled", async () => {
-      await ConfigRepo.upsertSystemConfig(adminContext.db, {
+      await ConfigService.updateSystemConfig(adminContext, {
         ...DEFAULT_CONFIG,
         notification: {
           ...DEFAULT_CONFIG.notification,
@@ -117,7 +118,7 @@ describe("FriendLinkService", () => {
     });
 
     it("should only send webhook to endpoints subscribed to friend link submission", async () => {
-      await ConfigRepo.upsertSystemConfig(adminContext.db, {
+      await ConfigService.updateSystemConfig(adminContext, {
         ...DEFAULT_CONFIG,
         notification: {
           ...DEFAULT_CONFIG.notification,
@@ -172,7 +173,7 @@ describe("FriendLinkService", () => {
     });
 
     it("should not send webhook to disabled endpoints", async () => {
-      await ConfigRepo.upsertSystemConfig(adminContext.db, {
+      await ConfigService.updateSystemConfig(adminContext, {
         ...DEFAULT_CONFIG,
         notification: {
           ...DEFAULT_CONFIG.notification,
@@ -304,7 +305,7 @@ describe("FriendLinkService", () => {
     });
 
     it("should skip submitter email when user email notifications are disabled", async () => {
-      await ConfigRepo.upsertSystemConfig(adminContext.db, {
+      await ConfigService.updateSystemConfig(adminContext, {
         ...DEFAULT_CONFIG,
         notification: {
           ...DEFAULT_CONFIG.notification,
@@ -360,7 +361,7 @@ describe("FriendLinkService", () => {
     });
 
     it("should skip rejection email when user email notifications are disabled", async () => {
-      await ConfigRepo.upsertSystemConfig(adminContext.db, {
+      await ConfigService.updateSystemConfig(adminContext, {
         ...DEFAULT_CONFIG,
         notification: {
           ...DEFAULT_CONFIG.notification,

@@ -3,7 +3,7 @@ import { memo, useEffect, useRef, useState } from "react";
 import { getOptimizedImageUrl } from "@/features/media/utils/media.utils";
 import { formatBytes } from "@/lib/utils";
 import { m } from "@/paraglide/messages";
-import { useLongPress } from "../hooks";
+import { useLongPress } from "../hooks/use-long-press";
 import type { MediaAsset } from "../types";
 
 interface MediaGridProps {
