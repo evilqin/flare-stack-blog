@@ -185,6 +185,43 @@ export const shieldMiddleware = createMiddleware(async (c, next) => {
   if (isPathValid(path)) {
     return next();
   }
+
+  // 明显恶意的路径模式 — 即使 GET 请求也直接拦截
+  const SUSPICIOUS_PATTERNS = [
+    "/wp-",
+    "/wordpress",
+    "/xmlrpc",
+    "/wp-login",
+    ".php",
+    ".env",
+    "/.git",
+    "/vendor/",
+    "/node_modules/",
+    "/cgi-bin/",
+    "/shell",
+    "/backup",
+    "/administrator",
+    "/eval",
+    "/cmd",
+    "/exec",
+    "/muieblackcat", // 常见扫描器特征
+    "/config.json",
+    "/db_backup",
+    "..%2f",
+    "../",
+    "//",
+  ];
+  const lowerPath = path.toLowerCase();
+  const isSuspicious = SUSPICIOUS_PATTERNS.some((p) => lowerPath.includes(p));
+
+  if (isSuspicious) {
+    const response = c.text("Not Found", 404);
+    Object.entries(CACHE_CONTROL.notFound).forEach(([k, v]) => {
+      response.headers.set(k, v);
+    });
+    return response;
+  }
+
   // GET/HEAD 请求放行到 TanStack Start，让其渲染自定义 404 页面
   if (c.req.method === "GET" || c.req.method === "HEAD") {
     return next();
