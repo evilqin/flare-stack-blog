@@ -93,10 +93,10 @@ export async function findPostBySlug(
   data: { slug: string },
 ) {
   const fetcher = () => PostRepo.findPostBySlug(context.db, data.slug);
-  const version = await CacheService.getVersion(context, "posts:detail");
-  return CacheService.get(
+  return CacheService.getVersioned(
     context,
-    POSTS_CACHE_KEYS.detail(version, data.slug),
+    "posts:detail",
+    (version) => POSTS_CACHE_KEYS.detail(version, data.slug),
     PostSchema,
     fetcher,
   );
@@ -191,12 +191,12 @@ Dual-layer caching architecture:
 | Layer | Technology            | Purpose                                           |
 | ----- | --------------------- | ------------------------------------------------- |
 | CDN   | Cache-Control headers | Edge caching, set via page headers or Hono routes |
-| KV    | Versioned Keys        | Server-side caching, managed via `CacheService`   |
+| KV    | Generation Keys       | Server-side caching, managed via `CacheService`   |
 
 Invalidation Patterns:
 
 ```typescript
-// Batch Invalidation: Bump version number
+// Batch Invalidation: Rotate to a new generation token
 await CacheService.bumpVersion(context, "posts:list");
 
 // Single Item Invalidation: Delete specific key

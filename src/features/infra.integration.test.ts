@@ -269,20 +269,19 @@ describe("Infra Integration", () => {
     });
 
     describe("getVersion", () => {
-      it("should return 'v1' when no version exists", async () => {
+      it("should return bootstrap generation v0 when no generation exists", async () => {
         const context = createTestContext();
         const namespace: CacheNamespace = "posts:list";
 
         const version = await CacheService.getVersion(context, namespace);
 
-        expect(version).toBe("v1");
+        expect(version).toBe("v0");
       });
 
-      it("should return formatted version when version exists", async () => {
+      it("should preserve an existing numeric generation token", async () => {
         const context = createTestContext();
         const namespace: CacheNamespace = "posts:detail";
 
-        // Pre-set version to 5
         await context.env.KV.put(`ver:${namespace}`, "5");
 
         const version = await CacheService.getVersion(context, namespace);
@@ -290,85 +289,139 @@ describe("Infra Integration", () => {
         expect(version).toBe("v5");
       });
 
-      it("should return 'v1' when version is not a valid number", async () => {
+      it("should preserve an existing opaque generation token", async () => {
         const context = createTestContext();
         const namespace: CacheNamespace = "posts:list";
 
-        // Pre-set invalid version
-        await context.env.KV.put(`ver:${namespace}`, "invalid");
+        await context.env.KV.put(`ver:${namespace}`, "opaque-generation");
 
         const version = await CacheService.getVersion(context, namespace);
 
-        expect(version).toBe("v1");
+        expect(version).toBe("vopaque-generation");
+      });
+
+      it("should reject an empty stored generation token", async () => {
+        const context = createTestContext();
+        const namespace: CacheNamespace = "posts:list";
+        await context.env.KV.put(`ver:${namespace}`, "");
+
+        await expect(
+          CacheService.getVersion(context, namespace),
+        ).rejects.toThrow("cache generation is empty");
+      });
+
+      it("should surface generation read failures", async () => {
+        const context = createTestContext();
+        const namespace: CacheNamespace = "posts:list";
+        vi.spyOn(context.env.KV, "get").mockRejectedValueOnce(
+          new Error("KV unavailable"),
+        );
+
+        await expect(
+          CacheService.getVersion(context, namespace),
+        ).rejects.toThrow("KV unavailable");
       });
     });
 
     describe("bumpVersion", () => {
-      it("should set version to 1 when no version exists", async () => {
+      it("should rotate bootstrap v0 to a unique generation", async () => {
         const context = createTestContext();
         const namespace: CacheNamespace = "posts:list";
 
         await CacheService.bumpVersion(context, namespace);
 
         const stored = await context.env.KV.get(`ver:${namespace}`);
-        expect(stored).toBe("1");
+        expect(stored).toMatch(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+        );
+        expect(await CacheService.getVersion(context, namespace)).toBe(
+          `v${stored}`,
+        );
       });
 
-      it("should increment existing version", async () => {
+      it("should rotate an existing numeric token without incrementing it", async () => {
         const context = createTestContext();
         const namespace: CacheNamespace = "posts:detail";
 
-        // Pre-set version to 3
         await context.env.KV.put(`ver:${namespace}`, "3");
 
         await CacheService.bumpVersion(context, namespace);
 
         const stored = await context.env.KV.get(`ver:${namespace}`);
-        expect(stored).toBe("4");
+        expect(stored).not.toBe("3");
+        expect(stored).not.toBe("4");
       });
 
-      it("should reset to 1 when version is invalid", async () => {
+      it("should produce a different token on every rotation", async () => {
         const context = createTestContext();
         const namespace: CacheNamespace = "posts:list";
 
-        // Pre-set invalid version
-        await context.env.KV.put(`ver:${namespace}`, "not-a-number");
+        await CacheService.bumpVersion(context, namespace);
+        const first = await context.env.KV.get(`ver:${namespace}`);
 
         await CacheService.bumpVersion(context, namespace);
+        const second = await context.env.KV.get(`ver:${namespace}`);
 
-        const stored = await context.env.KV.get(`ver:${namespace}`);
-        expect(stored).toBe("1");
+        expect(second).not.toBe(first);
       });
 
-      it("should correctly invalidate old cache keys", async () => {
+      it("should surface generation write failures", async () => {
+        const context = createTestContext();
+        const namespace: CacheNamespace = "posts:list";
+        vi.spyOn(context.env.KV, "put").mockRejectedValueOnce(
+          new Error("KV unavailable"),
+        );
+
+        await expect(
+          CacheService.bumpVersion(context, namespace),
+        ).rejects.toThrow("KV unavailable");
+      });
+
+      it("should make the bootstrap cache unreachable after one rotation", async () => {
         const context = createTestContext();
         const namespace: CacheNamespace = "posts:detail";
         const slug = "test-post";
 
-        // Simulate pre-existing cached data with v1
-        const v1Key = serializeKey(["v1", "post", slug]);
-        await context.env.KV.put(v1Key, JSON.stringify({ title: "Old Data" }));
+        const bootstrapKey = serializeKey(["v0", "post", slug]);
+        await context.env.KV.put(
+          bootstrapKey,
+          JSON.stringify({ title: "Old Data" }),
+        );
 
-        // Bump version
         await CacheService.bumpVersion(context, namespace);
 
-        // New cache reads would use v2, old v1 key is effectively orphaned
         const newVersion = await CacheService.getVersion(context, namespace);
-        expect(newVersion).toBe("v1"); // First bump sets to 1, so version is v1
+        expect(newVersion).not.toBe("v0");
 
-        // Bump again
-        await CacheService.bumpVersion(context, namespace);
-        const bumpedVersion = await CacheService.getVersion(context, namespace);
-        expect(bumpedVersion).toBe("v2");
+        const oldData = await context.env.KV.get(bootstrapKey);
+        expect(oldData).not.toBeNull();
 
-        // Old v1 key still exists but is unreachable with v2 version
-        const oldData = await context.env.KV.get(v1Key);
-        expect(oldData).not.toBeNull(); // Still exists
-
-        // New v2 key doesn't exist yet
-        const v2Key = serializeKey(["v2", "post", slug]);
-        const newData = await context.env.KV.get(v2Key);
+        const newKey = serializeKey([newVersion, "post", slug]);
+        const newData = await context.env.KV.get(newKey);
         expect(newData).toBeNull();
+      });
+    });
+
+    describe("getVersioned", () => {
+      it("should fetch fresh data when the generation cannot be read", async () => {
+        const context = createTestContext();
+        const namespace: CacheNamespace = "posts:list";
+        const schema = z.object({ source: z.string() });
+        const staleKey = serializeKey(["v0", "test-versioned"]);
+        await context.env.KV.put(staleKey, JSON.stringify({ source: "stale" }));
+        vi.spyOn(context.env.KV, "get").mockRejectedValueOnce(
+          new Error("KV unavailable"),
+        );
+
+        const result = await CacheService.getVersioned(
+          context,
+          namespace,
+          (version) => [version, "test-versioned"],
+          schema,
+          async () => ({ source: "fresh" }),
+        );
+
+        expect(result).toEqual({ source: "fresh" });
       });
     });
 
