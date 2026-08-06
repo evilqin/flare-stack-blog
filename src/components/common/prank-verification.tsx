@@ -230,6 +230,13 @@ export function PrankVerification() {
     };
   }, []);
 
+  // 揭晓时通知音乐播放器暂停,避免与瑞克摇同时出声
+  useEffect(() => {
+    if (phase === "done") {
+      window.dispatchEvent(new CustomEvent("flare:prank-reveal"));
+    }
+  }, [phase]);
+
   const toggleEnabled = () => {
     setEnabled((prev) => {
       const next = !prev;

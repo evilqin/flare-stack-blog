@@ -93,6 +93,20 @@ export const MusicPlayer = memo(function MusicPlayer() {
     };
   }, []);
 
+  // 整蛊页揭晓瑞克摇时暂停音乐,避免两路声音同时播放
+  useEffect(() => {
+    const onPrankReveal = () => {
+      const audio = audioRef.current;
+      if (audio && !audio.paused) {
+        audio.pause();
+        setIsPlaying(false);
+      }
+    };
+    window.addEventListener("flare:prank-reveal", onPrankReveal);
+    return () =>
+      window.removeEventListener("flare:prank-reveal", onPrankReveal);
+  }, []);
+
   // Keep refs in sync (avoids stale closures in event listeners)
   useEffect(() => {
     currentIndexRef.current = currentIndex;
