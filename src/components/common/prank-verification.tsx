@@ -322,12 +322,28 @@ export function PrankVerification() {
               ? "此功能当前未启用。"
               : "This feature is currently disabled."}
           </p>
-          <Link
-            to="/"
-            className="inline-flex items-center justify-center px-6 py-3 text-xs font-mono font-bold uppercase tracking-widest border border-border/40 text-foreground hover:border-foreground/60 transition-colors"
-          >
-            {locale === "zh" ? "返回首页" : "Back home"}
-          </Link>
+          <div className="flex flex-col items-center gap-4">
+            <Link
+              to="/"
+              className="inline-flex items-center justify-center px-6 py-3 text-xs font-mono font-bold uppercase tracking-widest border border-border/40 text-foreground hover:border-foreground/60 transition-colors"
+            >
+              {locale === "zh" ? "返回首页" : "Back home"}
+            </Link>
+            {/* 站长在此重新开启整蛊验证 */}
+            <button
+              type="button"
+              onClick={toggleEnabled}
+              aria-pressed={false}
+              className="inline-flex items-center gap-2.5 text-xs text-muted-foreground/70 hover:text-foreground transition-colors"
+            >
+              <span className="relative inline-flex h-5 w-9 items-center rounded-full bg-muted-foreground/30 transition-colors">
+                <span className="inline-block h-4 w-4 transform translate-x-0.5 rounded-full bg-background shadow transition-transform" />
+              </span>
+              {locale === "zh"
+                ? "重新开启整蛊人机验证"
+                : "Re-enable prank verification"}
+            </button>
+          </div>
         </div>
       </div>
     );
