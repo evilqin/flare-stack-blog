@@ -33,7 +33,10 @@
   "posts_all": "All",
   "posts_count": [
     {
-      "declarations": ["input count", "local formattedCountEn = count: number"],
+      "declarations": [
+        "input count",
+        "local formattedCountEn = count: number"
+      ],
       "match": {
         "count=1": "{formattedCountEn} post",
         "count=*": "{formattedCountEn} posts"
@@ -42,7 +45,10 @@
   ],
   "format_month_day": [
     {
-      "declarations": ["input date", "local formattedDateEn = date: datetime month=2-digit day=2-digit"],
+      "declarations": [
+        "input date",
+        "local formattedDateEn = date: datetime month=2-digit day=2-digit"
+      ],
       "match": {
         "date=*": "{formattedDateEn}"
       }
@@ -77,7 +83,10 @@
   "post_next": "Next Post",
   "post_word_count": [
     {
-      "declarations": ["input count", "local formattedCountEn = count: number"],
+      "declarations": [
+        "input count",
+        "local formattedCountEn = count: number"
+      ],
       "match": {
         "count=1": "About {formattedCountEn} word",
         "count=*": "About {formattedCountEn} words"
@@ -89,7 +98,10 @@
   "post_no_tags": "No tags",
   "read_time": [
     {
-      "declarations": ["input count", "local formattedCountEn = count: number"],
+      "declarations": [
+        "input count",
+        "local formattedCountEn = count: number"
+      ],
       "match": {
         "count=1": "{formattedCountEn} minute",
         "count=*": "{formattedCountEn} minutes"
@@ -98,7 +110,10 @@
   ],
   "post_views_count": [
     {
-      "declarations": ["input count", "local formattedCountEn = count: number"],
+      "declarations": [
+        "input count",
+        "local formattedCountEn = count: number"
+      ],
       "match": {
         "count=1": "{formattedCountEn} view",
         "count=*": "{formattedCountEn} views"
@@ -107,7 +122,10 @@
   ],
   "format_date": [
     {
-      "declarations": ["input date", "local formattedDateEn = date: datetime year=numeric month=2-digit day=2-digit"],
+      "declarations": [
+        "input date",
+        "local formattedDateEn = date: datetime year=numeric month=2-digit day=2-digit"
+      ],
       "match": {
         "date=*": "{formattedDateEn}"
       }
@@ -115,7 +133,10 @@
   ],
   "format_datetime": [
     {
-      "declarations": ["input date", "local formattedDateTimeEn = date: datetime year=numeric month=2-digit day=2-digit hour=2-digit minute=2-digit"],
+      "declarations": [
+        "input date",
+        "local formattedDateTimeEn = date: datetime year=numeric month=2-digit day=2-digit hour=2-digit minute=2-digit"
+      ],
       "match": {
         "date=*": "{formattedDateTimeEn}"
       }
@@ -124,7 +145,10 @@
   "time_ago_just_now": "just now",
   "time_ago_minutes": [
     {
-      "declarations": ["input count", "local formattedCountEn = count: number"],
+      "declarations": [
+        "input count",
+        "local formattedCountEn = count: number"
+      ],
       "match": {
         "count=1": "{formattedCountEn}m ago",
         "count=*": "{formattedCountEn}m ago"
@@ -133,7 +157,10 @@
   ],
   "time_ago_hours": [
     {
-      "declarations": ["input count", "local formattedCountEn = count: number"],
+      "declarations": [
+        "input count",
+        "local formattedCountEn = count: number"
+      ],
       "match": {
         "count=1": "{formattedCountEn}h ago",
         "count=*": "{formattedCountEn}h ago"
@@ -142,7 +169,10 @@
   ],
   "time_ago_days": [
     {
-      "declarations": ["input count", "local formattedCountEn = count: number"],
+      "declarations": [
+        "input count",
+        "local formattedCountEn = count: number"
+      ],
       "match": {
         "count=1": "{formattedCountEn}d ago",
         "count=*": "{formattedCountEn}d ago"
@@ -156,7 +186,9 @@
   "search_no_results": "No results found",
   "search_no_results_with_query": [
     {
-      "declarations": ["input query"],
+      "declarations": [
+        "input query"
+      ],
       "match": {
         "query=*": "Sorry, no content found for \"{query}\". Please try other keywords."
       }
@@ -199,7 +231,9 @@
   "friend_link_validation_required": "Site name is required",
   "friend_link_validation_too_long": [
     {
-      "declarations": ["input max"],
+      "declarations": [
+        "input max"
+      ],
       "match": {
         "max=*": "Maximum {max} characters"
       }
@@ -256,7 +290,9 @@
   "profile_toast_profile_updated": "Profile updated",
   "profile_toast_name_changed": [
     {
-      "declarations": ["input name"],
+      "declarations": [
+        "input name"
+      ],
       "match": {
         "name=*": "Nickname changed to: {name}"
       }
@@ -315,7 +351,9 @@
   "request_error_rate_limited_title": "Too Many Requests",
   "request_error_rate_limited_desc": [
     {
-      "declarations": ["input seconds"],
+      "declarations": [
+        "input seconds"
+      ],
       "match": {
         "seconds=*": "Please try again in {seconds} seconds."
       }
@@ -484,7 +522,10 @@
   "theme_toggle_title": "Theme: {theme}",
   "format_time": [
     {
-      "declarations": ["input date", "local formattedTimeEn = date: datetime hour=2-digit minute=2-digit hour12=true"],
+      "declarations": [
+        "input date",
+        "local formattedTimeEn = date: datetime hour=2-digit minute=2-digit hour12=true"
+      ],
       "match": {
         "date=*": "{formattedTimeEn}"
       }
@@ -492,7 +533,10 @@
   ],
   "format_month_day_time": [
     {
-      "declarations": ["input date", "local formattedDateTimeEn = date: datetime month=2-digit day=2-digit hour=2-digit minute=2-digit hour12=true"],
+      "declarations": [
+        "input date",
+        "local formattedDateTimeEn = date: datetime month=2-digit day=2-digit hour=2-digit minute=2-digit hour12=true"
+      ],
       "match": {
         "date=*": "{formattedDateTimeEn}"
       }
@@ -589,7 +633,11 @@
   "admin_posts_time_modified": "Modified",
   "admin_pagination_info": [
     {
-      "declarations": ["input startItem", "input endItem", "input totalItems"],
+      "declarations": [
+        "input startItem",
+        "input endItem",
+        "input totalItems"
+      ],
       "match": {
         "startItem=*": "Showing {startItem} - {endItem} of {totalItems}"
       }
@@ -609,7 +657,9 @@
   "editor_status_unsaved": "Unsaved",
   "editor_status_saved": [
     {
-      "declarations": ["input time"],
+      "declarations": [
+        "input time"
+      ],
       "match": {
         "time=*": "Saved {time}"
       }
@@ -696,7 +746,9 @@
   "editor_action_slug_set": "URL Slug Set",
   "editor_action_slug_set_desc": [
     {
-      "declarations": ["input slug"],
+      "declarations": [
+        "input slug"
+      ],
       "match": {
         "slug=*": "URL slug set to \"{slug}\""
       }
@@ -709,7 +761,10 @@
   "editor_action_read_time_done": "Read Time Calculated",
   "editor_action_read_time_desc": [
     {
-      "declarations": ["input mins", "input words"],
+      "declarations": [
+        "input mins",
+        "input words"
+      ],
       "match": {
         "mins=*, words=*": "Estimated read time {mins} min ({words} words)"
       }
@@ -719,7 +774,9 @@
   "editor_action_tags_done": "AI Tags Generation Complete",
   "editor_action_tags_added": [
     {
-      "declarations": ["input count"],
+      "declarations": [
+        "input count"
+      ],
       "match": {
         "count=*": "Added {count} new tags"
       }
@@ -818,7 +875,10 @@
   "media_title": "Media Library",
   "media_stats_assets": [
     {
-      "declarations": ["input count", "input size"],
+      "declarations": [
+        "input count",
+        "input size"
+      ],
       "match": {
         "count=*, size=*": "ASSETS / {count} Files / {size} Used"
       }
@@ -828,7 +888,9 @@
   "media_delete_confirm_title": "Confirm Deletion",
   "media_delete_confirm_desc": [
     {
-      "declarations": ["input count"],
+      "declarations": [
+        "input count"
+      ],
       "match": {
         "count=*": "Are you sure you want to permanently delete {count} media assets? This action cannot be reversed."
       }
@@ -841,7 +903,9 @@
   "media_select_all": "Select All",
   "media_delete_selected": [
     {
-      "declarations": ["input count"],
+      "declarations": [
+        "input count"
+      ],
       "match": {
         "count=*": "Delete Selected ({count})"
       }
@@ -859,7 +923,9 @@
   "media_upload_drop_here": "Click or drag files here",
   "media_upload_support_format": [
     {
-      "declarations": ["input maxSizeMb"],
+      "declarations": [
+        "input maxSizeMb"
+      ],
       "match": {
         "maxSizeMb=*": "Supports images & audio (Max {maxSizeMb}MB)"
       }
@@ -867,7 +933,9 @@
   ],
   "media_upload_queue": [
     {
-      "declarations": ["input count"],
+      "declarations": [
+        "input count"
+      ],
       "match": {
         "count=*": "Upload Queue [{count}]"
       }
@@ -896,7 +964,9 @@
   "media_preview_created": "Created At",
   "media_preview_linked": [
     {
-      "declarations": ["input count"],
+      "declarations": [
+        "input count"
+      ],
       "match": {
         "count=*": "Linked ({count})"
       }
@@ -910,7 +980,9 @@
   "media_toast_partial_delete": "Partial Delete Success",
   "media_toast_partial_delete_desc": [
     {
-      "declarations": ["input count"],
+      "declarations": [
+        "input count"
+      ],
       "match": {
         "count=*": "{count} items deleted. Some assets are in use and could not be deleted."
       }
@@ -921,7 +993,9 @@
   "media_toast_delete_success": "Assets Permanently Deleted",
   "media_toast_delete_success_desc": [
     {
-      "declarations": ["input count"],
+      "declarations": [
+        "input count"
+      ],
       "match": {
         "count=*": "{count} items permanently deleted from storage."
       }
@@ -932,7 +1006,9 @@
   "media_toast_protected_delete": "Cannot Delete Protected Assets",
   "media_toast_protected_delete_desc": [
     {
-      "declarations": ["input count"],
+      "declarations": [
+        "input count"
+      ],
       "match": {
         "count=*": "{count} items are currently in use. Deselect them first."
       }
@@ -947,7 +1023,9 @@
   "media_validation_key_required": "Image key is required",
   "media_upload_fail": [
     {
-      "declarations": ["input name"],
+      "declarations": [
+        "input name"
+      ],
       "match": {
         "name=*": "Upload failed: {name}"
       }
@@ -955,7 +1033,9 @@
   ],
   "media_upload_log_error": [
     {
-      "declarations": ["input message"],
+      "declarations": [
+        "input message"
+      ],
       "match": {
         "message=*": "> ERROR: {message}"
       }
@@ -964,7 +1044,9 @@
   "media_upload_log_complete": "> Upload complete. Asset indexed.",
   "media_upload_success": [
     {
-      "declarations": ["input name"],
+      "declarations": [
+        "input name"
+      ],
       "match": {
         "name=*": "Upload complete: {name}"
       }
@@ -980,7 +1062,10 @@
   "comments_admin_user_risk_clear": "Clear / No violations",
   "comments_admin_user_risk_flagged": [
     {
-      "declarations": ["input count", "local formattedCountEn = count: number"],
+      "declarations": [
+        "input count",
+        "local formattedCountEn = count: number"
+      ],
       "match": {
         "count=1": "{formattedCountEn} violation record",
         "count=*": "{formattedCountEn} violation records"
@@ -1169,7 +1254,9 @@
   "settings_site_primary_preview_btn_tinted": "Tinted Surface",
   "settings_site_validation_too_long": [
     {
-      "declarations": ["input max"],
+      "declarations": [
+        "input max"
+      ],
       "match": {
         "max=*": "Maximum {max} characters"
       }
@@ -1203,7 +1290,9 @@
   "settings_mcp_connections_desc": "These are the AI tools and apps that have already completed OAuth authorization.",
   "settings_mcp_connected_count": [
     {
-      "declarations": ["input count"],
+      "declarations": [
+        "input count"
+      ],
       "match": {
         "count=1": "1 connected client",
         "count=*": "{count} connected clients"
@@ -1277,7 +1366,11 @@
   "settings_webhook_toast_test_fail_msg": "Failed: {message}",
   "settings_webhook_delivery_failed": [
     {
-      "declarations": ["input status", "input statusText", "input detail"],
+      "declarations": [
+        "input status",
+        "input statusText",
+        "input detail"
+      ],
       "match": {
         "detail=": "Webhook delivery failed: {status} {statusText}",
         "detail=*": "Webhook delivery failed: {status} {statusText} - {detail}"
@@ -1488,5 +1581,6 @@
   "settings_quote_content": "Quote",
   "settings_quote_content_ph": "The quote text...",
   "settings_quote_author": "Author",
-  "settings_quote_author_ph": "Author name"
+  "settings_quote_author_ph": "Author name",
+  "media_grid_load_more": "Load more"
 }

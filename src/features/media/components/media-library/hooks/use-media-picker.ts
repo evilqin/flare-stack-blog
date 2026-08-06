@@ -11,16 +11,17 @@ export function useMediaPicker() {
   const [searchQuery, setSearchQuery] = useState("");
   const debouncedSearch = useDebounce(searchQuery, 300);
 
-  // Infinite Query for media list (images only)
+  // Infinite Query for media list (server-side image filter).
+  // Filtering server-side keeps pagination over images only, so every page
+  // is 20 images regardless of how many audio/video assets exist.
   const { data, fetchNextPage, hasNextPage, isFetchingNextPage, isPending } =
     useInfiniteQuery({
-      ...mediaInfiniteQueryOptions(debouncedSearch),
+      ...mediaInfiniteQueryOptions(debouncedSearch, false, "image"),
     });
 
-  // Flatten all pages and filter to images only
+  // Flatten all pages (already image-only from the server)
   const mediaItems = useMemo(() => {
-    const items = data?.pages.flatMap((page) => page.items) ?? [];
-    return items.filter((m) => m.mimeType.startsWith("image/"));
+    return data?.pages.flatMap((page) => page.items) ?? [];
   }, [data]);
 
   // Load more handler - memoized to prevent IntersectionObserver recreation

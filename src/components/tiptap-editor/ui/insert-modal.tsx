@@ -272,6 +272,20 @@ const InsertModalInternal: React.FC<InsertModalProps> = ({
                         />
                       )}
                     </div>
+                    {/* Fallback load-more button so more images are always reachable
+                        even if the IntersectionObserver does not fire inside the modal */}
+                    {hasMore && (
+                      <button
+                        type="button"
+                        onClick={loadMore}
+                        disabled={isLoadingMore}
+                        className="col-span-full py-3 text-xs font-mono uppercase tracking-widest text-muted-foreground hover:text-foreground border border-border/30 hover:border-foreground/40 transition-colors disabled:opacity-50"
+                      >
+                        {isLoadingMore
+                          ? m.media_grid_loading()
+                          : m.media_grid_load_more()}
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
