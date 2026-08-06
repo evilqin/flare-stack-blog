@@ -3,16 +3,27 @@
 .admin-layout {
   /* Increase base font size slightly across the entire admin area */
   font-size: 15px;
+  /* 后台界面文字整体不可选中:点击文字时不再出现文本编辑光标(I-beam)或误选。
+     输入框、下拉框、富文本编辑器等需要输入/复制的区域在下面单独恢复可选。 */
+  user-select: none;
+  -webkit-user-select: none;
 }
 
-/* 后台可交互元素:手型光标 + 文本不可选中。
-   避免点击/悬停文字(如侧边栏"仪表盘")时出现文本编辑 I-beam 光标、或误选文字。 */
+/* 需要输入或复制的区域保持可选中 */
+.admin-layout input,
+.admin-layout textarea,
+.admin-layout select,
+.admin-layout [contenteditable="true"],
+.admin-layout .ProseMirror {
+  user-select: text;
+  -webkit-user-select: text;
+}
+
+/* 后台可交互元素:手型光标 */
 .admin-layout a,
 .admin-layout button:not(:disabled),
 .admin-layout [role="button"]:not(:disabled) {
   cursor: pointer;
-  user-select: none;
-  -webkit-user-select: none;
 }
 
 /* Typography Normalization - Professional Minimums */
