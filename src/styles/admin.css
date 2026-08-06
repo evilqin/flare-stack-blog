@@ -5,6 +5,16 @@
   font-size: 15px;
 }
 
+/* 后台可交互元素:手型光标 + 文本不可选中。
+   避免点击/悬停文字(如侧边栏"仪表盘")时出现文本编辑 I-beam 光标、或误选文字。 */
+.admin-layout a,
+.admin-layout button:not(:disabled),
+.admin-layout [role="button"]:not(:disabled) {
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 /* Typography Normalization - Professional Minimums */
 .admin-layout :is(.text-\[9px\], .text-\[10px\], .text-xs) {
   font-size: 13px !important;
