@@ -16,6 +16,8 @@
   "home_pinned_posts": "置顶",
   "home_popular_posts": "热门",
   "home_view_all_posts": "查看全部文章",
+  "home_prank_lure": "检测到异常访问行为，请先完成一次人机验证",
+  "home_prank_cta": "开始验证",
   "home_intro_prefix": "我是",
   "home_intro_separator": "，",
   "nav_login_register": "登录 / 注册",

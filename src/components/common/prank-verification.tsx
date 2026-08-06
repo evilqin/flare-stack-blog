@@ -128,7 +128,7 @@ const FINAL_COPY: Record<
   },
 };
 
-const RICKROLL_URL = "https://www.youtube.com/watch?v=dQw4w9WgXcQ";
+const RICKROLL_URL = "https://www.bilibili.com/video/BV1GJ411x7h7/";
 const GRID_EMOJIS = ["⭐", "🌙", "⭐", "🚗", "⭐", "☁️", "⭐", "🌊", "⭐"];
 
 type Phase = "idle" | "verifying" | "verified" | "done";

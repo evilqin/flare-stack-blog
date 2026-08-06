@@ -1,4 +1,5 @@
 import { Link } from "@tanstack/react-router";
+import { ShieldAlert } from "lucide-react";
 import { useMemo } from "react";
 import { useViewCounts } from "@/features/pageview/queries";
 import type { PostItem } from "@/features/posts/schema/posts.schema";
@@ -53,6 +54,26 @@ export function HomePage({ posts, pinnedPosts, popularPosts }: HomePageProps) {
 
   return (
     <div className="flex flex-col gap-4">
+      {/* 彩蛋入口:伪装成安全验证提示,引诱点击跳转到 /verify 的整蛊页面 */}
+      <Link
+        to="/verify"
+        className="group mx-4 md:mx-6 mt-4 md:mt-6 flex items-center justify-between gap-3 rounded-(--fuwari-radius-large) bg-(--fuwari-card-bg) border border-(--fuwari-primary)/30 px-4 py-3 hover:border-(--fuwari-primary)/60 transition-colors"
+      >
+        <span className="flex items-center gap-2.5 min-w-0">
+          <ShieldAlert
+            size={16}
+            strokeWidth={2}
+            className="shrink-0 text-(--fuwari-primary)"
+          />
+          <span className="fuwari-text-90 text-sm font-medium truncate">
+            {m.home_prank_lure()}
+          </span>
+        </span>
+        <span className="shrink-0 text-xs font-bold uppercase tracking-widest text-(--fuwari-primary) group-hover:underline">
+          {m.home_prank_cta()}
+        </span>
+      </Link>
+
       <div className="flex flex-col rounded-(--fuwari-radius-large) bg-(--fuwari-card-bg) py-1 md:py-0 md:bg-transparent md:gap-4">
         {mergedPosts.map(({ post, pinned, popular }, i) => (
           <div

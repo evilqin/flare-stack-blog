@@ -16,6 +16,8 @@
   "home_pinned_posts": "Pinned",
   "home_popular_posts": "Popular",
   "home_view_all_posts": "View all posts",
+  "home_prank_lure": "Suspicious access detected. Please complete a quick human verification",
+  "home_prank_cta": "Verify now",
   "home_intro_prefix": "I am",
   "home_intro_separator": ", ",
   "nav_login_register": "Login / Register",
