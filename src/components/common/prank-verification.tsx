@@ -129,7 +129,70 @@ const FINAL_COPY: Record<
 };
 
 const RICKROLL_URL = "https://www.bilibili.com/video/BV1GJ411x7h7/";
-const GRID_EMOJIS = ["⭐", "🌙", "⭐", "🚗", "⭐", "☁️", "⭐", "🌊", "⭐"];
+
+/** reCAPTCHA 风格的图像选择题:每组题目不同、目标物不同、干扰项也不同。 */
+interface GridChallenge {
+  target: string; // 要找的目标 emoji
+  labelZh: string; // 中文题目里的名称
+  labelEn: string; // 英文题目里的名称
+  distractors: string[]; // 干扰物池
+}
+
+const GRID_CHALLENGES: GridChallenge[] = [
+  {
+    target: "🚦",
+    labelZh: "红绿灯",
+    labelEn: "traffic lights",
+    distractors: ["🏠", "🚗", "🚌", "🌳", "☁️", "🚧", "🏢", "⚽", "🌊"],
+  },
+  {
+    target: "🚌",
+    labelZh: "公交车",
+    labelEn: "buses",
+    distractors: ["🚗", "🚕", "🚲", "🏠", "🌳", "🚦", "🏢", "☁️", "🏀"],
+  },
+  {
+    target: "⛰️",
+    labelZh: "山",
+    labelEn: "mountains",
+    distractors: ["🌳", "🌊", "🏠", "☁️", "🚗", "🦅", "⛵", "🏠", "🌻"],
+  },
+  {
+    target: "🐱",
+    labelZh: "猫",
+    labelEn: "cats",
+    distractors: ["🐶", "🐰", "🐦", "🐟", "🌳", "🏠", "⚽", "☁️", "🌙"],
+  },
+  {
+    target: "🌳",
+    labelZh: "树",
+    labelEn: "trees",
+    distractors: ["🏠", "🚗", "⛰️", "☁️", "🌊", "🏢", "🚦", "🌻", "🐦"],
+  },
+  {
+    target: "🚗",
+    labelZh: "汽车",
+    labelEn: "cars",
+    distractors: ["🚌", "🚕", "🚲", "🏠", "🌳", "🚦", "⚽", "☁️", "🚧"],
+  },
+];
+
+/** 生成一张 3x3 的选择网格:目标物随机散落 targetCount 个,其余用干扰物填充。 */
+function buildGrid(challenge: GridChallenge, targetCount: number): string[] {
+  const positions = new Set<number>();
+  while (positions.size < targetCount) {
+    positions.add(Math.floor(Math.random() * 9));
+  }
+  const distractors = [...challenge.distractors].sort(
+    () => Math.random() - 0.5,
+  );
+  const cells: string[] = [];
+  let di = 0;
+  for (let i = 0; i < 9; i++) {
+    cells.push(positions.has(i) ? challenge.target : distractors[di++ % distractors.length]);
+  }
+  return cells;
+}
 
 type Phase = "idle" | "verifying" | "verified" | "done";
 
@@ -185,7 +248,15 @@ export function PrankVerification() {
     }, 1400);
   };
 
-  const grid = useMemo(() => GRID_EMOJIS, []);
+  // 三个 google 阶段分别用不同题目、不同目标数(2/3/4 个),网格只在本阶段内保持稳定
+  const googleIndex = stageIndex >= 2 ? stageIndex - 2 : 0;
+  const challenge = GRID_CHALLENGES[googleIndex % GRID_CHALLENGES.length];
+  const targetCount = 2 + (googleIndex % 3);
+  const grid = useMemo(
+    () => buildGrid(challenge, targetCount),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [googleIndex],
+  );
 
   return (
     <div className="mx-auto max-w-md px-6 py-10 md:py-16">
@@ -245,12 +316,21 @@ export function PrankVerification() {
           <div className="px-6 py-6 bg-muted/5 min-h-52 flex flex-col items-center justify-center gap-4">
             {isGoogleStage ? (
               <div className="w-full max-w-xs">
+                {/* reCAPTCHA 风格的顶部条 */}
+                <div className="flex items-center justify-between mb-2 px-0.5">
+                  <span className="text-[10px] font-mono font-bold uppercase tracking-widest text-foreground/60">
+                    reCAPTCHA
+                  </span>
+                  <span className="text-[10px] text-foreground/40">
+                    🔊
+                  </span>
+                </div>
                 <p className="text-center text-sm text-foreground/90 mb-3">
                   {locale === "zh"
-                    ? "请选择所有包含 ⭐ 的图片"
-                    : "Select all images containing ⭐"}
+                    ? `请选择所有包含${challenge.labelZh}的图片`
+                    : `Select all images with ${challenge.labelEn}`}
                 </p>
-                <div className="grid grid-cols-3 gap-2">
+                <div className="grid grid-cols-3 gap-1.5">
                   {grid.map((emoji, i) => {
                     const selected = selectedCells.has(i);
                     return (
@@ -267,7 +347,7 @@ export function PrankVerification() {
                           })
                         }
                         className={cn(
-                          "aspect-square text-2xl flex items-center justify-center border bg-background transition-all",
+                          "aspect-square text-3xl flex items-center justify-center border bg-gradient-to-br from-muted/40 to-muted/10 transition-all",
                           selected
                             ? "border-foreground ring-1 ring-foreground/40"
                             : "border-border/40 hover:border-foreground/50",
