@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Check, Loader2, Music, ShieldAlert } from "lucide-react";
+import { Check, Loader2, Music, ShieldAlert, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { getLocale } from "@/paraglide/runtime";
@@ -194,7 +194,7 @@ function buildGrid(challenge: GridChallenge, targetCount: number): string[] {
   return cells;
 }
 
-type Phase = "idle" | "verifying" | "verified" | "done";
+type Phase = "idle" | "verifying" | "verified" | "failed" | "done";
 
 export function PrankVerification() {
   const locale: Locale = getLocale() === "en" ? "en" : "zh";
@@ -241,6 +241,28 @@ export function PrankVerification() {
 
   const handleGoogleVerify = () => {
     if (selectedCells.size === 0 || phase !== "idle") return;
+
+    // 校验是否真的选中了全部目标物:和真实 reCAPTCHA 一样,选错就要重试
+    const targetSet = new Set<number>();
+    grid.forEach((emoji, i) => {
+      if (emoji === challenge.target) targetSet.add(i);
+    });
+    const isCorrect =
+      selectedCells.size === targetSet.size &&
+      [...targetSet].every((i) => selectedCells.has(i));
+
+    if (!isCorrect) {
+      setPhase("failed");
+      setSelectedCells(new Set());
+      timerRef.current = setTimeout(() => setPhase("idle"), 1300);
+      return;
+    }
+
+    // 最后一轮:在用户手势内同步打开瑞克摇窗口,避免被浏览器弹窗拦截
+    if (stageIndex >= STAGE_ORDER.length - 1) {
+      window.open(RICKROLL_URL, "_blank", "noopener");
+    }
+
     setPhase("verifying");
     timerRef.current = setTimeout(() => {
       setPhase("verified");
@@ -330,7 +352,7 @@ export function PrankVerification() {
                     ? `请选择所有包含${challenge.labelZh}的图片`
                     : `Select all images with ${challenge.labelEn}`}
                 </p>
-                <div className="grid grid-cols-3 gap-1.5">
+                <div className="grid grid-cols-3 gap-[3px]">
                   {grid.map((emoji, i) => {
                     const selected = selectedCells.has(i);
                     return (
@@ -347,10 +369,10 @@ export function PrankVerification() {
                           })
                         }
                         className={cn(
-                          "aspect-square text-3xl flex items-center justify-center border bg-gradient-to-br from-muted/40 to-muted/10 transition-all",
+                          "aspect-square text-3xl flex items-center justify-center rounded-[6px] border bg-gradient-to-br from-muted/40 via-muted/20 to-muted/10 shadow-inner transition-all",
                           selected
-                            ? "border-foreground ring-1 ring-foreground/40"
-                            : "border-border/40 hover:border-foreground/50",
+                            ? "border-foreground ring-2 ring-foreground/40"
+                            : "border-border/30 hover:border-foreground/50",
                           phase !== "idle" && "opacity-60",
                         )}
                       >
@@ -406,8 +428,17 @@ export function PrankVerification() {
                 <Check size={13} className="text-emerald-500" />
                 <span className="text-xs text-emerald-600 dark:text-emerald-400">
                   {locale === "zh"
-                    ? "✓ 验证通过，正在进行安全复核..."
-                    : "✓ Verified, running security review..."}
+                    ? "验证通过，正在进行安全复核..."
+                    : "Verified, running security review..."}
+                </span>
+              </>
+            ) : phase === "failed" ? (
+              <>
+                <X size={13} className="text-red-500" />
+                <span className="text-xs text-red-600 dark:text-red-400">
+                  {locale === "zh"
+                    ? "部分选择不正确，请重新选择"
+                    : "Some selections are incorrect. Please try again."}
                 </span>
               </>
             ) : (
