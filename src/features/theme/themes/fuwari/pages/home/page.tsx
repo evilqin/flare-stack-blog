@@ -1,6 +1,6 @@
 import { Link } from "@tanstack/react-router";
 import { ShieldAlert } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useViewCounts } from "@/features/pageview/queries";
 import type { PostItem } from "@/features/posts/schema/posts.schema";
 import type { HomePageProps } from "@/features/theme/contract/pages";
@@ -52,9 +52,23 @@ export function HomePage({ posts, pinnedPosts, popularPosts }: HomePageProps) {
   const { data: viewCounts, isPending: isPendingViewCounts } =
     useViewCounts(allSlugs);
 
+  // 整蛊人机验证开关:与 /verify 完成页的开关共用 localStorage,
+  // 关闭后首页横幅也隐藏
+  const [prankEnabled, setPrankEnabled] = useState(true);
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("flare_prank_enabled") === "off") {
+        setPrankEnabled(false);
+      }
+    } catch {
+      // ignore
+    }
+  }, []);
+
   return (
     <div className="flex flex-col gap-4">
       {/* 彩蛋入口:伪装成安全验证提示,引诱点击跳转到 /verify 的整蛊页面 */}
+      {prankEnabled && (
       <Link
         to="/verify"
         className="group mx-4 md:mx-6 mt-4 md:mt-6 flex items-center justify-between gap-3 rounded-(--fuwari-radius-large) bg-(--fuwari-card-bg) border border-(--fuwari-primary)/30 px-4 py-3 hover:border-(--fuwari-primary)/60 transition-colors"
@@ -73,6 +87,7 @@ export function HomePage({ posts, pinnedPosts, popularPosts }: HomePageProps) {
           {m.home_prank_cta()}
         </span>
       </Link>
+      )}
 
       <div className="flex flex-col rounded-(--fuwari-radius-large) bg-(--fuwari-card-bg) py-1 md:py-0 md:bg-transparent md:gap-4">
         {mergedPosts.map(({ post, pinned, popular }, i) => (
