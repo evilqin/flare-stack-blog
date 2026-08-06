@@ -12,7 +12,7 @@ import { rootCommentsByPostIdInfiniteQuery } from "@/features/comments/queries";
 import { authClient } from "@/lib/auth/auth.client";
 import { cn } from "@/lib/utils";
 import { m } from "@/paraglide/messages";
-import { CommentEditor } from "./comment-editor";
+import { LazyCommentEditor } from "./lazy-comment-editor";
 import { CommentList } from "./comment-list";
 import { CommentSectionSkeleton } from "./comment-section-skeleton";
 
@@ -166,7 +166,7 @@ export const CommentSection = ({ postId, className }: CommentSectionProps) => {
       {/* Main Editor */}
       {session ? (
         <div className="space-y-6">
-          <CommentEditor
+          <LazyCommentEditor
             onSubmit={handleCreateComment}
             isSubmitting={isCreating && !replyTarget}
           />

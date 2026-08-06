@@ -1,4 +1,3 @@
-import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
 import {
   createRootRouteWithContext,
@@ -6,11 +5,10 @@ import {
   Scripts,
   useRouteContext,
 } from "@tanstack/react-router";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
+import { useEffect, useState } from "react";
 import theme from "@theme";
 import { ThemeProvider } from "@/components/common/theme-provider";
 import { siteConfigQuery } from "@/features/config/queries";
-import TanStackQueryDevtools from "@/integrations/tanstack-query/devtools";
 import { clientEnv } from "@/lib/env/client.env";
 import { getLocale } from "@/paraglide/runtime";
 import appCss from "@/styles.css?url";
@@ -111,6 +109,47 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
   shellComponent: RootDocument,
 });
 
+/**
+ * Dev-only developer tools panel.
+ * Statically imported devtools would ship in the production bundle and run on
+ * every page; loading them lazily here keeps them out of the client critical
+ * path entirely (the chunk is only fetched when running the dev server).
+ */
+function Devtools() {
+  const [panel, setPanel] = useState<React.ReactNode>(null);
+
+  useEffect(() => {
+    if (import.meta.env.DEV === false) return;
+    let cancelled = false;
+    Promise.all([
+      import("@tanstack/react-devtools"),
+      import("@tanstack/react-router-devtools"),
+      import("@/integrations/tanstack-query/devtools"),
+    ]).then(([td, rtd, qd]) => {
+      if (cancelled) return;
+      setPanel(
+        <td.TanStackDevtools
+          config={{
+            position: "bottom-right",
+          }}
+          plugins={[
+            {
+              name: "Tanstack Router",
+              render: <rtd.TanStackRouterDevtoolsPanel />,
+            },
+            qd.default,
+          ]}
+        />,
+      );
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  return panel;
+}
+
 function RootDocument({ children }: { children: React.ReactNode }) {
   const locale = getLocale();
   const { siteConfig } = useRouteContext({ from: "__root__" });
@@ -126,18 +165,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
       </head>
       <body>
         <ThemeProvider>{children}</ThemeProvider>
-        <TanStackDevtools
-          config={{
-            position: "bottom-right",
-          }}
-          plugins={[
-            {
-              name: "Tanstack Router",
-              render: <TanStackRouterDevtoolsPanel />,
-            },
-            TanStackQueryDevtools,
-          ]}
-        />
+        <Devtools />
         <Scripts />
       </body>
     </html>

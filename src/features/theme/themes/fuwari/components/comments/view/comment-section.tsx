@@ -10,7 +10,7 @@ import { useComments } from "@/features/comments/hooks/use-comments";
 import { rootCommentsByPostIdInfiniteQuery } from "@/features/comments/queries";
 import { authClient } from "@/lib/auth/auth.client";
 import { m } from "@/paraglide/messages";
-import { FuwariCommentEditor } from "../editor/comment-editor";
+import { LazyCommentEditor } from "../editor/lazy-comment-editor";
 import { FuwariCommentList } from "./comment-list";
 import FuwariConfirmationModal from "./confirmation-modal";
 
@@ -144,7 +144,7 @@ export function FuwariCommentSection({ postId }: FuwariCommentSectionProps) {
 
       {/* Main Editor */}
       {session ? (
-        <FuwariCommentEditor
+        <LazyCommentEditor
           onSubmit={handleCreateComment}
           isSubmitting={isCreating && !replyTarget}
         />

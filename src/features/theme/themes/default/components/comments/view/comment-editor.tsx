@@ -10,7 +10,7 @@ import CommentEditorToolbar from "../editor/comment-editor-toolbar";
 import type { ModalType } from "../editor/comment-insert-modal";
 import InsertModal from "../editor/comment-insert-modal";
 
-interface CommentEditorProps {
+export interface CommentEditorProps {
   onSubmit: (content: JSONContent) => Promise<void>;
   isSubmitting?: boolean;
   autoFocus?: boolean;

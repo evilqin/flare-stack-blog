@@ -9,7 +9,7 @@ import FuwariCommentEditorToolbar from "./comment-editor-toolbar";
 import type { ModalType } from "./comment-insert-modal";
 import { FuwariInsertModal } from "./comment-insert-modal";
 
-interface CommentEditorProps {
+export interface CommentEditorProps {
   onSubmit: (content: JSONContent) => Promise<void>;
   isSubmitting?: boolean;
   autoFocus?: boolean;

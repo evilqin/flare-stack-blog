@@ -1,7 +1,7 @@
 import type { JSONContent } from "@tiptap/react";
 import clsx from "clsx";
 import { m } from "@/paraglide/messages";
-import { CommentEditor } from "./comment-editor";
+import { LazyCommentEditor } from "./lazy-comment-editor";
 
 interface CommentReplyFormProps {
   parentUserName: string;
@@ -33,7 +33,7 @@ export const CommentReplyForm = ({
           @{parentUserName}
         </span>
       </div>
-      <CommentEditor
+      <LazyCommentEditor
         onSubmit={onSubmit}
         isSubmitting={isSubmitting}
         autoFocus

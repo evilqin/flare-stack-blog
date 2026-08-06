@@ -1,8 +1,4 @@
 import type { HighlighterCore, LanguageRegistration } from "shiki/core";
-import { createHighlighterCore } from "shiki/core";
-import { createJavaScriptRegexEngine } from "shiki/engine/javascript";
-import viteDark from "shiki/themes/vitesse-dark.mjs";
-import viteLight from "shiki/themes/vitesse-light.mjs";
 
 // Shiki language modules export `default` as an array of LanguageRegistration
 type LanguageModule = { default: Array<LanguageRegistration> };
@@ -47,19 +43,33 @@ let highlighterPromise: Promise<HighlighterCore> | null = null;
 
 export async function getHighlighter() {
   if (!highlighterPromise) {
-    // Customizing the background color of vitesse-dark to remove the greenish tint
-    // using Zinc-900 (#18181b) to match the dark mode UI
-    const customViteDark = {
-      ...viteDark,
-      bg: "#18181b",
-      name: "vitesse-dark", // Ensure name matches
-    };
+    highlighterPromise = (async () => {
+      // Lazy-load shiki core / engine / themes so they never ship in the
+      // critical client bundle. Public pages render pre-highlighted HTML from
+      // the server and never call getHighlighter; only the admin editor and
+      // server-side processing do, at which point this chunk loads on demand.
+      const [{ createHighlighterCore }, { createJavaScriptRegexEngine }, viteDark, viteLight] =
+        await Promise.all([
+          import("shiki/core"),
+          import("shiki/engine/javascript"),
+          import("shiki/themes/vitesse-dark.mjs"),
+          import("shiki/themes/vitesse-light.mjs"),
+        ]);
 
-    highlighterPromise = createHighlighterCore({
-      themes: [customViteDark, viteLight],
-      langs: [],
-      engine: createJavaScriptRegexEngine(),
-    });
+      // Customizing the background color of vitesse-dark to remove the greenish tint
+      // using Zinc-900 (#18181b) to match the dark mode UI
+      const customViteDark = {
+        ...viteDark,
+        bg: "#18181b",
+        name: "vitesse-dark", // Ensure name matches
+      };
+
+      return createHighlighterCore({
+        themes: [customViteDark, viteLight],
+        langs: [],
+        engine: createJavaScriptRegexEngine(),
+      });
+    })();
   }
   return highlighterPromise;
 }

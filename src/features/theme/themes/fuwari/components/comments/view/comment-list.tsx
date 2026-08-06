@@ -6,7 +6,7 @@ import type { RootCommentWithReplyCount } from "@/features/comments/comments.sch
 import { repliesByRootIdInfiniteQuery } from "@/features/comments/queries";
 import { authClient } from "@/lib/auth/auth.client";
 import { m } from "@/paraglide/messages";
-import { FuwariCommentEditor } from "../editor/comment-editor";
+import { LazyCommentEditor } from "../editor/lazy-comment-editor";
 import { FuwariCommentItem } from "./comment-item";
 
 type RootCommentWithUser = RootCommentWithReplyCount;
@@ -279,7 +279,7 @@ function ReplyForm({
           @{userName}
         </span>
       </div>
-      <FuwariCommentEditor
+      <LazyCommentEditor
         onSubmit={onSubmit}
         isSubmitting={isSubmitting}
         autoFocus
