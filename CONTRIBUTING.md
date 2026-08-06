@@ -93,10 +93,10 @@ export async function findPostBySlug(
   data: { slug: string },
 ) {
   const fetcher = () => PostRepo.findPostBySlug(context.db, data.slug);
-  const version = await CacheService.getVersion(context, "posts:detail");
-  return CacheService.get(
+  return CacheService.getVersioned(
     context,
-    POSTS_CACHE_KEYS.detail(version, data.slug),
+    "posts:detail",
+    (version) => POSTS_CACHE_KEYS.detail(version, data.slug),
     PostSchema,
     fetcher,
   );
@@ -191,12 +191,12 @@ export const updatePostFn = createServerFn()
 | 层  | 技术                  | 用途                                        |
 | --- | --------------------- | ------------------------------------------- |
 | CDN | Cache-Control headers | 边缘缓存，通过页面 headers 或 Hono 路由设置 |
-| KV  | 版本化 key            | 服务端缓存，通过 `CacheService` 管理        |
+| KV  | generation key        | 服务端缓存，通过 `CacheService` 管理        |
 
 失效模式：
 
 ```typescript
-// 批量失效：递增版本号
+// 批量失效：旋转到新的 generation token
 await CacheService.bumpVersion(context, "posts:list");
 
 // 单条失效：删除特定 key

@@ -80,12 +80,10 @@ export async function getApprovedFriendLinks(
       limit: null,
     });
 
-  const version = await CacheService.getVersion(context, "friend-links:list");
-  const cacheKey = FRIEND_LINKS_CACHE_KEYS.approvedList(version);
-
-  return await CacheService.get(
+  return await CacheService.getVersioned(
     context,
-    cacheKey,
+    "friend-links:list",
+    FRIEND_LINKS_CACHE_KEYS.approvedList,
     ApprovedFriendLinksResponseSchema,
     fetcher,
     { ttl: "7d" },

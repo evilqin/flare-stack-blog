@@ -5,12 +5,19 @@ import {
   createAdminTestContext,
   createMockExecutionCtx,
   createTestContext,
+  drainTestExecutionContexts,
   seedUser,
+  testRequest,
   waitForBackgroundTasks,
 } from "tests/test-utils";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import * as CacheService from "@/features/cache/cache.service";
-import { POSTS_CACHE_KEYS } from "@/features/posts/schema/posts.schema";
+import postsListRoute from "@/features/posts/api/hono/posts.list.route";
+import {
+  GetPostsCursorInputSchema,
+  POSTS_CACHE_KEYS,
+  PostListResponseSchema,
+} from "@/features/posts/schema/posts.schema";
 import * as PostRevisionService from "@/features/posts/services/post-revisions.service";
 import * as PostService from "@/features/posts/services/posts.service";
 import { calculatePostHash } from "@/features/posts/utils/sync";
@@ -32,6 +39,20 @@ describe("Posts Integration", () => {
   const updatePost = async (
     input: Parameters<typeof PostService.updatePost>[1],
   ) => unwrap(await PostService.updatePost(adminContext, input));
+
+  const createPublishedPost = async (title: string, slug: string) => {
+    const { id } = await PostService.createEmptyPost(adminContext);
+    await updatePost({
+      id,
+      data: {
+        title,
+        slug,
+        status: "published",
+        publishedAt: new Date(),
+      },
+    });
+    return id;
+  };
 
   describe("Post CRUD", () => {
     it("should create an empty draft post", async () => {
@@ -236,23 +257,21 @@ describe("Posts Integration", () => {
       await PostService.findPostBySlug(adminContext, { slug: "version-test" });
       await waitForBackgroundTasks(adminContext.executionCtx);
 
-      // Get current version (implicit v1 before any bump)
+      // Get current bootstrap generation before any bump
       const oldVersion = await CacheService.getVersion(
         adminContext,
         "posts:detail",
       );
-      expect(oldVersion).toBe("v1");
+      expect(oldVersion).toBe("v0");
 
-      // Bump version twice to go from implicit v1 -> v1 (stored) -> v2
-      await CacheService.bumpVersion(adminContext, "posts:detail");
+      // One rotation must make the old cache generation unreachable
       await CacheService.bumpVersion(adminContext, "posts:detail");
 
-      // Verify version changed
       const newVersion = await CacheService.getVersion(
         adminContext,
         "posts:detail",
       );
-      expect(newVersion).toBe("v2");
+      expect(newVersion).not.toBe(oldVersion);
 
       // New cache key doesn't exist yet (old one is stale)
       const newCacheKey = `${newVersion}:post:version-test`;
@@ -266,12 +285,106 @@ describe("Posts Integration", () => {
         adminContext,
         "posts:detail",
       );
-      // Should be v1 since each test has isolated storage
-      expect(version).toBe("v1");
+      expect(version).toBe("v0");
     });
   });
 
   describe("Post Pagination (getPostsCursor)", () => {
+    const seedAllTagPosts = async () => {
+      const allTag = unwrap(
+        await TagService.createTag(adminContext, { name: "all" }),
+      );
+      const taggedPostId = await createPublishedPost(
+        "Tagged All Post",
+        "tagged-all-post",
+      );
+      await TagService.setPostTags(adminContext, {
+        postId: taggedPostId,
+        tagIds: [allTag.id],
+      });
+      await createPublishedPost("Untagged Post", "untagged-post");
+    };
+
+    it("should normalize an exact empty Tag filter to no filter", () => {
+      const input = GetPostsCursorInputSchema.parse({ tagName: "" });
+
+      expect(input.tagName).toBeUndefined();
+    });
+
+    it("should not let an empty Tag filter bypass the unfiltered cache", async () => {
+      const initialPublicContext = createTestContext();
+      const emptyList = await PostService.getPostsCursor(
+        initialPublicContext,
+        {},
+      );
+      expect(emptyList.items).toEqual([]);
+      await waitForBackgroundTasks(initialPublicContext.executionCtx);
+
+      await createPublishedPost("New Post", "new-post");
+
+      const emptyTagList = await PostService.getPostsCursor(
+        createTestContext(),
+        { tagName: "" },
+      );
+
+      expect(emptyTagList.items).toEqual([]);
+    });
+
+    it("should keep a real Tag named all distinct from the unfiltered list", async () => {
+      const publicContext = createTestContext();
+      await seedAllTagPosts();
+
+      const unfiltered = await PostService.getPostsCursor(publicContext, {});
+      expect(unfiltered.items).toHaveLength(2);
+      await waitForBackgroundTasks(publicContext.executionCtx);
+
+      const filtered = await PostService.getPostsCursor(createTestContext(), {
+        tagName: "all",
+      });
+
+      expect(filtered.items.map((post) => post.slug)).toEqual([
+        "tagged-all-post",
+      ]);
+    });
+
+    it("should keep the unfiltered list distinct after caching a real Tag named all", async () => {
+      const publicContext = createTestContext();
+      await seedAllTagPosts();
+
+      const filtered = await PostService.getPostsCursor(publicContext, {
+        tagName: "all",
+      });
+      expect(filtered.items.map((post) => post.slug)).toEqual([
+        "tagged-all-post",
+      ]);
+      await waitForBackgroundTasks(publicContext.executionCtx);
+
+      const unfiltered = await PostService.getPostsCursor(
+        createTestContext(),
+        {},
+      );
+      expect(unfiltered.items.map((post) => post.slug).sort()).toEqual([
+        "tagged-all-post",
+        "untagged-post",
+      ]);
+    });
+
+    it("should read the current Post list from D1 when the generation cannot be read", async () => {
+      const publicContext = createTestContext();
+      await createPublishedPost("Fresh Post", "fresh-post");
+      await publicContext.env.KV.put(
+        POSTS_CACHE_KEYS.list("v0", 10, 0).join(":"),
+        JSON.stringify({ items: [], nextCursor: null }),
+      );
+      vi.spyOn(publicContext.env.KV, "get").mockRejectedValueOnce(
+        new Error("KV unavailable"),
+      );
+
+      const result = await PostService.getPostsCursor(publicContext, {});
+
+      expect(result.items.map((post) => post.slug)).toEqual(["fresh-post"]);
+    });
+
     it("should get posts with cursor pagination", async () => {
       const publicContext = createTestContext();
       const basePublishedAt = new Date("2026-01-01T12:00:00.000Z");
@@ -1294,6 +1407,78 @@ describe("Posts Integration", () => {
       expect(updatedPost?.publicContentJson).toBeTruthy();
       expect(updatedPost?.updatedAt?.getTime()).toBe(
         updatedAtBeforeRun.getTime(),
+      );
+    });
+
+    it("shows the first Published Post after rotating an empty public list", async () => {
+      const requestPath = "/?limit=10";
+      const emptyResponse = await testRequest(
+        postsListRoute,
+        requestPath,
+        {},
+        adminContext.env,
+      );
+      const emptyList = PostListResponseSchema.parse(
+        await emptyResponse.json(),
+      );
+      expect(emptyList.items).toEqual([]);
+      await drainTestExecutionContexts();
+      expect(await CacheService.getVersion(adminContext, "posts:list")).toBe(
+        "v0",
+      );
+
+      const { id } = await PostService.createEmptyPost(adminContext);
+      unwrap(
+        await PostService.updatePost(adminContext, {
+          id,
+          data: {
+            title: "First Published Post",
+            slug: "first-published-post",
+            status: "published",
+            summary: "Ready for the public list",
+            publishedAt: new Date(),
+            contentJson: {
+              type: "doc",
+              content: [
+                {
+                  type: "paragraph",
+                  content: [{ type: "text", text: "First post body" }],
+                },
+              ],
+            },
+          },
+        }),
+      );
+
+      const workflow = Object.assign(
+        Object.create(PostProcessWorkflow.prototype),
+        {
+          env: adminContext.env,
+        },
+      ) as PostProcessWorkflow;
+
+      await workflow.run(
+        {
+          payload: { postId: id, isPublished: true, isFuturePost: false },
+        } as WorkflowEvent<{
+          postId: number;
+          isPublished: boolean;
+          isFuturePost?: boolean;
+        }>,
+        step,
+      );
+
+      const refreshedResponse = await testRequest(
+        postsListRoute,
+        requestPath,
+        {},
+        adminContext.env,
+      );
+      const refreshedList = PostListResponseSchema.parse(
+        await refreshedResponse.json(),
+      );
+      expect(refreshedList.items.map((post) => post.slug)).toContain(
+        "first-published-post",
       );
     });
   });

@@ -49,10 +49,21 @@ export const PostWithTocSchema = PostSelectSchema.extend({
   ),
 }).nullable();
 
+export function normalizePostTagName(
+  tagName: string | undefined,
+): string | undefined {
+  return tagName === "" ? undefined : tagName;
+}
+
+export const PostTagNameSchema = z
+  .string()
+  .transform(normalizePostTagName)
+  .optional();
+
 export const GetPostsCursorInputSchema = z.object({
   cursor: z.number().optional(),
   limit: z.number().optional(),
-  tagName: z.string().optional(),
+  tagName: PostTagNameSchema,
   excludePinned: z.boolean().optional(),
 });
 
@@ -134,8 +145,10 @@ export const AdjacentPostsSchema = z.object({
 export type AdjacentPosts = z.infer<typeof AdjacentPostsSchema>;
 
 export const POSTS_CACHE_KEYS = {
-  list: (version: string, limit: number, cursor: number, tagName: string) =>
-    ["posts", "list", version, limit, cursor, tagName] as const,
+  list: (version: string, limit: number, cursor: number, tagName?: string) =>
+    tagName === undefined
+      ? (["posts", "list", version, limit, cursor, "all"] as const)
+      : (["posts", "list", version, limit, cursor, "tag", tagName] as const),
   detail: (version: string, slug: string) => [version, "post", slug] as const,
   related: (slug: string, limit?: number) =>
     ["posts", "related-ids", slug, limit] as const,

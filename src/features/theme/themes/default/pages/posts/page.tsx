@@ -60,7 +60,7 @@ export function PostsPage({
 
         <div className="flex flex-wrap items-center gap-x-6 gap-y-3">
           <button
-            onClick={() => onTagClick("")}
+            onClick={() => onTagClick(undefined)}
             className={cn(
               "text-sm font-mono transition-all duration-300 relative group",
               !selectedTag

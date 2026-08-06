@@ -4,6 +4,7 @@ import type {
   GetPostsInput,
 } from "@/features/posts/schema/posts.schema";
 import {
+  normalizePostTagName,
   PostItemSchema,
   PostListResponseSchema,
   PostWithTocSchema,
@@ -39,7 +40,15 @@ export const POSTS_KEYS = {
   revisionDetails: ["posts", "revision-detail"] as const,
 
   // Child keys (functions for specific queries)
-  list: (filters?: { tagName?: string }) => ["posts", "list", filters] as const,
+  list: (filters: { tagName?: string; limit?: number } = {}) =>
+    [
+      "posts",
+      "list",
+      {
+        ...filters,
+        tagName: normalizePostTagName(filters.tagName),
+      },
+    ] as const,
   detail: (idOrSlug: number | string) => ["posts", "detail", idOrSlug] as const,
   related: (slug: string, limit?: number) =>
     ["posts", "related", slug, limit] as const,
@@ -72,15 +81,16 @@ export function postsInfiniteQueryOptions(
   filters: { tagName?: string; limit?: number } = {},
 ) {
   const pageSize = filters.limit ?? 12;
+  const tagName = normalizePostTagName(filters.tagName);
   return infiniteQueryOptions({
-    queryKey: POSTS_KEYS.list(filters),
+    queryKey: POSTS_KEYS.list({ ...filters, tagName }),
     queryFn: async ({ pageParam }) => {
       if (isSSR) {
         return await getPostsCursorFn({
           data: {
             cursor: pageParam,
             limit: pageSize,
-            tagName: filters.tagName,
+            tagName,
           },
         });
       }
@@ -88,7 +98,7 @@ export function postsInfiniteQueryOptions(
         query: {
           cursor: pageParam?.toString(),
           limit: String(pageSize),
-          tagName: filters.tagName,
+          tagName,
         },
       });
       if (!res.ok) throw new Error("Failed to fetch posts");
