@@ -757,6 +757,18 @@
   "editor_insert_cancel": "Cancel",
   "editor_insert_remove": "Remove",
   "editor_insert_confirm": "Confirm",
+  "editor_insert_selected": [
+    {
+      "declarations": [
+        "input count",
+        "local formattedCountEn = count: number"
+      ],
+      "match": {
+        "count=1": "{formattedCountEn} image selected",
+        "count=*": "{formattedCountEn} images selected"
+      }
+    }
+  ],
   "editor_formula_edit": "Edit Formula",
   "editor_formula_insert": "Insert Formula",
   "editor_formula_inline": "Inline",

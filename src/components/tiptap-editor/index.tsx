@@ -157,10 +157,10 @@ export const Editor = memo(function Editor({
   );
 
   const handleModalSubmit = (
-    url: string,
-    attrs?: { width?: number; height?: number },
+    images: Array<{ url: string; width?: number; height?: number }>,
   ) => {
     if (modalOpen === "LINK") {
+      const url = images[0]?.url ?? "";
       if (url === "") {
         editor?.chain().focus().extendMarkRange("link").unsetLink().run();
       } else {
@@ -168,12 +168,11 @@ export const Editor = memo(function Editor({
         editor?.chain().focus().extendMarkRange("link").setLink({ href }).run();
       }
     } else if (modalOpen === "IMAGE") {
-      if (url) {
-        editor
-          ?.chain()
-          .focus()
-          .setImage({ src: url, ...attrs })
-          .run();
+      // Insert every selected image in sequence
+      for (const img of images) {
+        if (!img.url) continue;
+        const { url, ...attrs } = img;
+        editor?.chain().focus().setImage({ src: url, ...attrs }).run();
       }
     }
 

@@ -19,11 +19,17 @@ import { m } from "@/paraglide/messages";
 
 export type ModalType = "LINK" | "IMAGE" | null;
 
+export interface InsertImage {
+  url: string;
+  width?: number;
+  height?: number;
+}
+
 interface InsertModalProps {
   type: ModalType;
   initialUrl?: string;
   onClose: () => void;
-  onSubmit: (url: string, attrs?: { width?: number; height?: number }) => void;
+  onSubmit: (images: Array<InsertImage>) => void;
 }
 
 const MediaItem = memo(
@@ -95,7 +101,7 @@ const InsertModalInternal: React.FC<InsertModalProps> = ({
   }, [type]);
 
   const [inputUrl, setInputUrl] = useState(initialUrl);
-  const [selectedMedia, setSelectedMedia] = useState<MediaAsset | null>(null);
+  const [selectedImages, setSelectedImages] = useState<MediaAsset[]>([]);
 
   const {
     mediaItems,
@@ -129,7 +135,7 @@ const InsertModalInternal: React.FC<InsertModalProps> = ({
   useEffect(() => {
     if (type) {
       setInputUrl(initialUrl);
-      setSelectedMedia(null);
+      setSelectedImages([]);
       setSearchQuery("");
     }
   }, [initialUrl, type, setSearchQuery]);
@@ -138,20 +144,20 @@ const InsertModalInternal: React.FC<InsertModalProps> = ({
     const trimmed = inputUrl.trim();
     if (activeType === "LINK") {
       // Allow empty submit to support "remove link" when editing an existing link.
-      if (trimmed || initialUrl.trim()) onSubmit(trimmed);
+      if (trimmed || initialUrl.trim()) onSubmit([{ url: trimmed }]);
       return;
     }
 
-    if (trimmed) {
-      if (selectedMedia && selectedMedia.url === trimmed) {
-        onSubmit(trimmed, {
-          width: selectedMedia.width || undefined,
-          height: selectedMedia.height || undefined,
-        });
-      } else {
-        onSubmit(trimmed);
-      }
+    // IMAGE: collect all selected media + an optional external URL
+    const images: InsertImage[] = selectedImages.map((m) => ({
+      url: m.url,
+      width: m.width || undefined,
+      height: m.height || undefined,
+    }));
+    if (trimmed && !images.some((img) => img.url === trimmed)) {
+      images.push({ url: trimmed });
     }
+    if (images.length > 0) onSubmit(images);
   };
 
   if (!shouldRender) return null;
@@ -254,10 +260,15 @@ const InsertModalInternal: React.FC<InsertModalProps> = ({
                       <MediaItem
                         key={media.key}
                         media={media}
-                        isSelected={selectedMedia?.key === media.key}
+                        isSelected={selectedImages.some(
+                          (m) => m.key === media.key,
+                        )}
                         onSelect={(asset) => {
-                          setSelectedMedia(asset);
-                          setInputUrl(asset.url);
+                          setSelectedImages((prev) =>
+                            prev.some((m) => m.key === asset.key)
+                              ? prev.filter((m) => m.key !== asset.key)
+                              : [...prev, asset],
+                          );
                         }}
                       />
                     ))}
@@ -308,10 +319,7 @@ const InsertModalInternal: React.FC<InsertModalProps> = ({
                 type="text"
                 autoFocus={activeType === "LINK"}
                 value={inputUrl}
-                onChange={(e) => {
-                  setInputUrl(e.target.value);
-                  if (selectedMedia) setSelectedMedia(null);
-                }}
+                onChange={(e) => setInputUrl(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
                 placeholder="https://..."
                 className="w-full bg-transparent border-b border-border text-foreground font-mono text-base py-2 pl-4 focus:border-foreground focus:outline-none transition-all placeholder:text-muted-foreground/20"
@@ -335,14 +343,16 @@ const InsertModalInternal: React.FC<InsertModalProps> = ({
             disabled={
               activeType === "LINK"
                 ? !inputUrl.trim() && !initialUrl.trim()
-                : !inputUrl.trim()
+                : selectedImages.length === 0 && !inputUrl.trim()
             }
             className="flex-1 px-6 py-4 text-xs font-mono font-bold uppercase tracking-widest text-foreground hover:bg-foreground hover:text-background transition-all disabled:opacity-30 disabled:hover:bg-transparent disabled:hover:text-foreground"
           >
             [{" "}
             {activeType === "LINK" && !inputUrl.trim() && initialUrl.trim()
               ? m.editor_insert_remove()
-              : m.editor_insert_confirm()}{" "}
+              : activeType === "IMAGE" && selectedImages.length > 0
+                ? m.editor_insert_selected({ count: selectedImages.length })
+                : m.editor_insert_confirm()}{" "}
             ]
           </button>
         </div>

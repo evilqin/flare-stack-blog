@@ -750,6 +750,17 @@
   "editor_insert_cancel": "取消",
   "editor_insert_remove": "移除",
   "editor_insert_confirm": "确认",
+  "editor_insert_selected": [
+    {
+      "declarations": [
+        "input count",
+        "local formattedCountZh = count: number"
+      ],
+      "match": {
+        "count=*": "已选 {formattedCountZh} 张"
+      }
+    }
+  ],
   "editor_formula_edit": "编辑公式",
   "editor_formula_insert": "插入公式",
   "editor_formula_inline": "行内",
