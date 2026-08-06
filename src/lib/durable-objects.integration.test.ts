@@ -278,8 +278,16 @@ describe("Durable Objects Integration", () => {
         expect(res.status).toBe(404);
       });
 
-      it("should block unknown paths with 404 before triggering loader", async () => {
+      it("should pass benign unknown GET paths to the app for custom 404 rendering", async () => {
         const res = await testRequest(app, "/random-bad-path");
+        expect(res.status).toBe(200);
+        expect(await res.text()).toBe("Mock TanStack Start");
+      });
+
+      it("should block unknown non-GET paths with 404", async () => {
+        const res = await testRequest(app, "/random-bad-path", {
+          method: "POST",
+        });
         expect(res.status).toBe(404);
         expect(await res.text()).toBe("Not Found");
       });

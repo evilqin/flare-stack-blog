@@ -195,6 +195,7 @@ export const shieldMiddleware = createMiddleware(async (c, next) => {
     ".php",
     ".env",
     "/.git",
+    "/.aws",
     "/vendor/",
     "/node_modules/",
     "/cgi-bin/",
