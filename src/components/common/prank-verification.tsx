@@ -111,18 +111,18 @@ const FINAL_COPY: Record<
   zh: {
     title: "你被耍了",
     lines: [
-      "五轮验证、零个检查——恭喜你参观完了今天的“行为艺术展”。",
-      "那些验证码只是演出的一部分，这里自始至终就没有入口。",
-      "下次进度条停在 98%，记得先怀疑：它到底想让你干嘛？",
+      "别难过，刚才那五分钟不是你在浪费时间，是页面在合理利用你的时间。",
+      "五轮验证码，没有一题是真的。恭喜解锁“被页面耍”成就。",
+      "下次看到进度条卡在 98%，直接走人就好。",
     ],
     ps: "这个页面没有任何真实功能，纯粹用来整蛊。",
   },
   en: {
-    title: "Tricked again",
+    title: "You got played",
     lines: [
-      "Five rounds of verification, zero real checks — welcome to today's performance-art exhibit.",
-      "Those CAPTCHAs were only part of the show; there was never an entrance.",
-      "Next time a progress bar stalls at 98%, ask first: what does it actually want from you?",
+      "Don't be upset — those five minutes weren't you wasting time; the page was wisely using yours.",
+      "Five rounds of CAPTCHAs, not a single real one. Achievement unlocked: “Played by a webpage.”",
+      "Next time a progress bar stalls at 98%, just walk away.",
     ],
     ps: "This page has no real purpose — it exists purely to prank you.",
   },
