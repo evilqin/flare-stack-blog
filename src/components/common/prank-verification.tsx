@@ -109,28 +109,28 @@ const FINAL_COPY: Record<
   { title: string; lines: string[]; ps: string }
 > = {
   zh: {
-    title: "你被耍了",
+    title: "又被骗了一次",
     lines: [
-      "恭喜你完成了五轮验证，但这里从来没有放行入口。",
-      "你刚刚点过的每一个验证码，都只是流程演出的一部分。",
-      "下次看到“验证进度 98%”，记得先怀疑一下页面动机。",
+      "五轮验证、零个检查——恭喜你参观完了今天的“行为艺术展”。",
+      "那些验证码只是演出的一部分，这里自始至终就没有入口。",
+      "下次进度条停在 98%，记得先怀疑：它到底想让你干嘛？",
     ],
     ps: "这个页面没有任何真实功能，纯粹用来整蛊。",
   },
   en: {
-    title: "You got played",
+    title: "Tricked again",
     lines: [
-      "Congratulations on clearing five rounds, but there was never an allow path.",
-      "Every CAPTCHA you just clicked was only part of the performance.",
-      "Next time you see “Verification 98%”, question the page motive first.",
+      "Five rounds of verification, zero real checks — welcome to today's performance-art exhibit.",
+      "Those CAPTCHAs were only part of the show; there was never an entrance.",
+      "Next time a progress bar stalls at 98%, ask first: what does it actually want from you?",
     ],
     ps: "This page has no real purpose — it exists purely to prank you.",
   },
 };
 
-// 用 B 站 iframe 播放器并尝试自动播放(浏览器自动播放策略可能拦截,尽力而为)
+// B 站 iframe 播放器。内嵌在本页才能继承用户点击手势,从而带声音自动播放。
 const RICKROLL_PLAYER_URL =
-  "https://player.bilibili.com/player.html?bvid=BV1GJ411x7h7&autoplay=1&high_quality=1";
+  "https://player.bilibili.com/player.html?bvid=BV1GJ411x7h7&autoplay=1&mute=0&high_quality=1";
 
 /** reCAPTCHA 风格的图像选择题:每组题目不同、目标物不同、干扰项也不同。 */
 interface GridChallenge {
@@ -289,7 +289,7 @@ export function PrankVerification() {
 
     // 最后一轮:在用户手势内同步打开瑞克摇窗口,避免被浏览器弹窗拦截
     if (stageIndex >= STAGE_ORDER.length - 1) {
-      window.open(RICKROLL_PLAYER_URL, "_blank", "noopener");
+      // 瑞克摇改为在完成页内嵌播放(新窗口会因浏览器策略静音)
     }
 
     setPhase("verifying");
@@ -348,6 +348,20 @@ export function PrankVerification() {
               <p key={i}>{line}</p>
             ))}
           </div>
+
+          {/* 内嵌播放瑞克摇:同一页面内继承用户点击手势,可带声音自动播放 */}
+          <div className="aspect-video w-full overflow-hidden rounded-sm border border-border/30 bg-black">
+            <iframe
+              src={RICKROLL_PLAYER_URL}
+              className="w-full h-full"
+              allow="autoplay; fullscreen; encrypted-media"
+              allowFullScreen
+              scrolling="no"
+              frameBorder="0"
+              title="Never Gonna Give You Up"
+            />
+          </div>
+
           <p className="text-xs text-muted-foreground/60">{finalCopy.ps}</p>
           <div className="flex flex-col items-center gap-4 pt-2">
             <Link
