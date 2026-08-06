@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Check, Loader2, ShieldAlert, X } from "lucide-react";
+import { Check, Loader2, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { getLocale } from "@/paraglide/runtime";
@@ -109,7 +109,7 @@ const FINAL_COPY: Record<
   { title: string; lines: string[]; ps: string }
 > = {
   zh: {
-    title: "又被骗了一次",
+    title: "你被耍了",
     lines: [
       "五轮验证、零个检查——恭喜你参观完了今天的“行为艺术展”。",
       "那些验证码只是演出的一部分，这里自始至终就没有入口。",
@@ -338,7 +338,9 @@ export function PrankVerification() {
       {phase === "done" ? (
         <div className="border border-border/40 bg-background shadow-2xl text-center px-6 py-12 space-y-6">
           <div className="flex flex-col items-center gap-3">
-            <ShieldAlert size={40} strokeWidth={1.25} className="text-destructive" />
+            <span className="text-5xl" role="img" aria-label="clown">
+              🤡
+            </span>
             <h1 className="text-3xl md:text-4xl font-serif font-black tracking-tight text-foreground">
               {finalCopy.title}
             </h1>
