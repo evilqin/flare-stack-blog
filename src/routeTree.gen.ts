@@ -18,6 +18,7 @@ import { Route as PublicIndexRouteImport } from './routes/_public/index'
 import { Route as OauthConsentRouteImport } from './routes/oauth/consent'
 import { Route as UserSubmitFriendLinkRouteImport } from './routes/_user/submit-friend-link'
 import { Route as UserProfileRouteImport } from './routes/_user/profile'
+import { Route as PublicVerifyRouteImport } from './routes/_public/verify'
 import { Route as PublicUnsubscribeRouteImport } from './routes/_public/unsubscribe'
 import { Route as PublicSearchRouteImport } from './routes/_public/search'
 import { Route as PublicPostsRouteImport } from './routes/_public/posts'
@@ -78,6 +79,11 @@ const UserProfileRoute = UserProfileRouteImport.update({
   id: '/profile',
   path: '/profile',
   getParentRoute: () => UserRouteRoute,
+} as any)
+const PublicVerifyRoute = PublicVerifyRouteImport.update({
+  id: '/verify',
+  path: '/verify',
+  getParentRoute: () => PublicRouteRoute,
 } as any)
 const PublicUnsubscribeRoute = PublicUnsubscribeRouteImport.update({
   id: '/unsubscribe',
@@ -183,6 +189,7 @@ export interface FileRoutesByFullPath {
   '/posts': typeof PublicPostsRoute
   '/search': typeof PublicSearchRoute
   '/unsubscribe': typeof PublicUnsubscribeRoute
+  '/verify': typeof PublicVerifyRoute
   '/profile': typeof UserProfileRoute
   '/submit-friend-link': typeof UserSubmitFriendLinkRoute
   '/oauth/consent': typeof OauthConsentRoute
@@ -207,6 +214,7 @@ export interface FileRoutesByTo {
   '/posts': typeof PublicPostsRoute
   '/search': typeof PublicSearchRoute
   '/unsubscribe': typeof PublicUnsubscribeRoute
+  '/verify': typeof PublicVerifyRoute
   '/profile': typeof UserProfileRoute
   '/submit-friend-link': typeof UserSubmitFriendLinkRoute
   '/oauth/consent': typeof OauthConsentRoute
@@ -236,6 +244,7 @@ export interface FileRoutesById {
   '/_public/posts': typeof PublicPostsRoute
   '/_public/search': typeof PublicSearchRoute
   '/_public/unsubscribe': typeof PublicUnsubscribeRoute
+  '/_public/verify': typeof PublicVerifyRoute
   '/_user/profile': typeof UserProfileRoute
   '/_user/submit-friend-link': typeof UserSubmitFriendLinkRoute
   '/oauth/consent': typeof OauthConsentRoute
@@ -265,6 +274,7 @@ export interface FileRouteTypes {
     | '/posts'
     | '/search'
     | '/unsubscribe'
+    | '/verify'
     | '/profile'
     | '/submit-friend-link'
     | '/oauth/consent'
@@ -289,6 +299,7 @@ export interface FileRouteTypes {
     | '/posts'
     | '/search'
     | '/unsubscribe'
+    | '/verify'
     | '/profile'
     | '/submit-friend-link'
     | '/oauth/consent'
@@ -317,6 +328,7 @@ export interface FileRouteTypes {
     | '/_public/posts'
     | '/_public/search'
     | '/_public/unsubscribe'
+    | '/_public/verify'
     | '/_user/profile'
     | '/_user/submit-friend-link'
     | '/oauth/consent'
@@ -404,6 +416,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/profile'
       preLoaderRoute: typeof UserProfileRouteImport
       parentRoute: typeof UserRouteRoute
+    }
+    '/_public/verify': {
+      id: '/_public/verify'
+      path: '/verify'
+      fullPath: '/verify'
+      preLoaderRoute: typeof PublicVerifyRouteImport
+      parentRoute: typeof PublicRouteRoute
     }
     '/_public/unsubscribe': {
       id: '/_public/unsubscribe'
@@ -559,6 +578,7 @@ interface PublicRouteRouteChildren {
   PublicPostsRoute: typeof PublicPostsRoute
   PublicSearchRoute: typeof PublicSearchRoute
   PublicUnsubscribeRoute: typeof PublicUnsubscribeRoute
+  PublicVerifyRoute: typeof PublicVerifyRoute
   PublicIndexRoute: typeof PublicIndexRoute
   PublicPostSlugRoute: typeof PublicPostSlugRoute
 }
@@ -568,6 +588,7 @@ const PublicRouteRouteChildren: PublicRouteRouteChildren = {
   PublicPostsRoute: PublicPostsRoute,
   PublicSearchRoute: PublicSearchRoute,
   PublicUnsubscribeRoute: PublicUnsubscribeRoute,
+  PublicVerifyRoute: PublicVerifyRoute,
   PublicIndexRoute: PublicIndexRoute,
   PublicPostSlugRoute: PublicPostSlugRoute,
 }
