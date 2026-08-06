@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { Check, Loader2, Music, ShieldAlert, X } from "lucide-react";
+import { Check, Loader2, ShieldAlert, X } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { getLocale } from "@/paraglide/runtime";
@@ -128,7 +128,9 @@ const FINAL_COPY: Record<
   },
 };
 
-const RICKROLL_URL = "https://www.bilibili.com/video/BV1GJ411x7h7/";
+// 用 B 站 iframe 播放器并尝试自动播放(浏览器自动播放策略可能拦截,尽力而为)
+const RICKROLL_PLAYER_URL =
+  "https://player.bilibili.com/player.html?bvid=BV1GJ411x7h7&autoplay=1&high_quality=1";
 
 /** reCAPTCHA 风格的图像选择题:每组题目不同、目标物不同、干扰项也不同。 */
 interface GridChallenge {
@@ -205,16 +207,43 @@ export function PrankVerification() {
   const [phase, setPhase] = useState<Phase>("idle");
   const [cfChecked, setCfChecked] = useState(false);
   const [selectedCells, setSelectedCells] = useState<Set<number>>(new Set());
+  const [enabled, setEnabled] = useState(true);
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const stage = STAGE_ORDER[stageIndex];
   const isGoogleStage = stage.startsWith("google");
+
+  // 读取整蛊功能的开关状态(站长可关闭)
+  useEffect(() => {
+    try {
+      if (localStorage.getItem("flare_prank_enabled") === "off") {
+        setEnabled(false);
+      }
+    } catch {
+      // localStorage 不可用时忽略
+    }
+  }, []);
 
   useEffect(() => {
     return () => {
       if (timerRef.current) clearTimeout(timerRef.current);
     };
   }, []);
+
+  const toggleEnabled = () => {
+    setEnabled((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(
+          "flare_prank_enabled",
+          next ? "on" : "off",
+        );
+      } catch {
+        // ignore
+      }
+      return next;
+    });
+  };
 
   const advance = (delayMs = 600) => {
     timerRef.current = setTimeout(() => {
@@ -260,7 +289,7 @@ export function PrankVerification() {
 
     // 最后一轮:在用户手势内同步打开瑞克摇窗口,避免被浏览器弹窗拦截
     if (stageIndex >= STAGE_ORDER.length - 1) {
-      window.open(RICKROLL_URL, "_blank", "noopener");
+      window.open(RICKROLL_PLAYER_URL, "_blank", "noopener");
     }
 
     setPhase("verifying");
@@ -280,6 +309,30 @@ export function PrankVerification() {
     [googleIndex],
   );
 
+  // 站长通过完成页上的开关关闭后,直接显示"已关闭"
+  if (!enabled) {
+    return (
+      <div className="mx-auto max-w-md px-6 py-10 md:py-16">
+        <div className="border border-border/40 bg-background shadow-2xl px-6 py-12 text-center space-y-4">
+          <p className="text-lg font-serif font-medium text-foreground">
+            {locale === "zh" ? "人机验证已关闭" : "Human verification is disabled"}
+          </p>
+          <p className="text-sm text-muted-foreground">
+            {locale === "zh"
+              ? "此功能当前未启用。"
+              : "This feature is currently disabled."}
+          </p>
+          <Link
+            to="/"
+            className="inline-flex items-center justify-center px-6 py-3 text-xs font-mono font-bold uppercase tracking-widest border border-border/40 text-foreground hover:border-foreground/60 transition-colors"
+          >
+            {locale === "zh" ? "返回首页" : "Back home"}
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="mx-auto max-w-md px-6 py-10 md:py-16">
       {phase === "done" ? (
@@ -296,22 +349,35 @@ export function PrankVerification() {
             ))}
           </div>
           <p className="text-xs text-muted-foreground/60">{finalCopy.ps}</p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
-            <a
-              href={RICKROLL_URL}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 px-6 py-3 text-xs font-mono font-bold uppercase tracking-widest bg-foreground text-background hover:opacity-90 transition-opacity"
-            >
-              <Music size={14} strokeWidth={1.5} />
-              {locale === "zh" ? "Never Gonna Give You Up" : "Never Gonna Give You Up"}
-            </a>
+          <div className="flex flex-col items-center gap-4 pt-2">
             <Link
               to="/"
               className="inline-flex items-center px-6 py-3 text-xs font-mono font-bold uppercase tracking-widest border border-border/40 text-foreground hover:border-foreground/60 transition-colors"
             >
               {locale === "zh" ? "返回首页" : "Back home"}
             </Link>
+            {/* 站长开关:关闭后本页显示"已关闭",不再走整蛊流程 */}
+            <button
+              type="button"
+              onClick={toggleEnabled}
+              aria-pressed={enabled}
+              className="inline-flex items-center gap-2.5 text-xs text-muted-foreground/70 hover:text-foreground transition-colors"
+            >
+              <span
+                className={cn(
+                  "relative inline-flex h-5 w-9 items-center rounded-full transition-colors",
+                  enabled ? "bg-foreground" : "bg-muted-foreground/30",
+                )}
+              >
+                <span
+                  className={cn(
+                    "inline-block h-4 w-4 transform rounded-full bg-background shadow transition-transform",
+                    enabled ? "translate-x-[18px]" : "translate-x-0.5",
+                  )}
+                />
+              </span>
+              {locale === "zh" ? "整蛊人机验证" : "Prank verification"}
+            </button>
           </div>
         </div>
       ) : (

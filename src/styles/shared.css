@@ -13,6 +13,31 @@
 }
 
 @layer base {
+  /* 界面文字默认不可选中:点击文字不再出现文本编辑(I-beam)光标、不再误选。
+     阅读正文、代码、输入框等需要复制/输入的内容在下面单独恢复可选中。 */
+  :where(body) {
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  /* 阅读正文、代码、输入框、表单等保持可选中 */
+  :where(
+    .prose,
+    .ProseMirror,
+    .post-summary,
+    code,
+    pre,
+    input,
+    textarea,
+    select,
+    [contenteditable="true"]
+  ) {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+}
+
+@layer base {
   /* Global Shiki Dark Mode Override */
   html.dark .shiki,
   html.dark .shiki span {
