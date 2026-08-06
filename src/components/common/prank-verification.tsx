@@ -1,6 +1,8 @@
 import { Link } from "@tanstack/react-router";
 import { Check, Loader2, Music, ShieldAlert, X } from "lucide-react";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { RealVerificationWidget } from "@/components/common/real-verification-widget";
+import { clientEnv } from "@/lib/env/client.env";
 import { cn } from "@/lib/utils";
 import { getLocale } from "@/paraglide/runtime";
 
@@ -130,6 +132,13 @@ const FINAL_COPY: Record<
 
 const RICKROLL_URL = "https://www.bilibili.com/video/BV1GJ411x7h7/";
 
+/**
+ * Google reCAPTCHA site key。
+ * 在 https://www.google.com/recaptcha 注册 v2 后填入,第 3-5 轮就会用真 reCAPTCHA;
+ * 未填写时降级为假选图。
+ */
+const GOOGLE_RECAPTCHA_SITE_KEY = ""; // TODO: 填入你的 reCAPTCHA site key
+
 /** reCAPTCHA 风格的图像选择题:每组题目不同、目标物不同、干扰项也不同。 */
 interface GridChallenge {
   target: string; // 要找的目标 emoji
@@ -206,9 +215,15 @@ export function PrankVerification() {
   const [cfChecked, setCfChecked] = useState(false);
   const [selectedCells, setSelectedCells] = useState<Set<number>>(new Set());
   const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const stageIndexRef = useRef(stageIndex);
 
   const stage = STAGE_ORDER[stageIndex];
   const isGoogleStage = stage.startsWith("google");
+  const turnstileSiteKey = clientEnv().VITE_TURNSTILE_SITE_KEY;
+
+  useEffect(() => {
+    stageIndexRef.current = stageIndex;
+  }, [stageIndex]);
 
   useEffect(() => {
     return () => {
@@ -269,6 +284,27 @@ export function PrankVerification() {
       advance(900);
     }, 1400);
   };
+
+  /** 真验证码组件( Turnstile / reCAPTCHA )验证成功时调用。
+   *  用 useCallback([]) + stageIndexRef 保证回调引用稳定,避免真组件反复重挂载。 */
+  const handleRealVerified = useCallback(() => {
+    // 最后一轮:尝试自动打开瑞克摇窗口
+    if (stageIndexRef.current >= STAGE_ORDER.length - 1) {
+      window.open(RICKROLL_URL, "_blank", "noopener");
+    }
+    setPhase("verified");
+    timerRef.current = setTimeout(() => {
+      const idx = stageIndexRef.current;
+      if (idx >= STAGE_ORDER.length - 1) {
+        setPhase("done");
+      } else {
+        setStageIndex((i) => i + 1);
+        setPhase("idle");
+        setCfChecked(false);
+        setSelectedCells(new Set());
+      }
+    }, 1100);
+  }, []);
 
   // 三个 google 阶段分别用不同题目、不同目标数(2/3/4 个),网格只在本阶段内保持稳定
   const googleIndex = stageIndex >= 2 ? stageIndex - 2 : 0;
@@ -337,6 +373,16 @@ export function PrankVerification() {
           {/* Widget */}
           <div className="px-6 py-6 bg-muted/5 min-h-52 flex flex-col items-center justify-center gap-4">
             {isGoogleStage ? (
+              GOOGLE_RECAPTCHA_SITE_KEY ? (
+                <div className="w-full max-w-xs">
+                  <RealVerificationWidget
+                    type="recaptcha"
+                    siteKey={GOOGLE_RECAPTCHA_SITE_KEY}
+                    onSuccess={handleRealVerified}
+                    stageKey={stageIndex}
+                  />
+                </div>
+              ) : (
               <div className="w-full max-w-xs">
                 {/* reCAPTCHA 风格的顶部条 */}
                 <div className="flex items-center justify-between mb-2 px-0.5">
@@ -389,6 +435,16 @@ export function PrankVerification() {
                 >
                   {locale === "zh" ? "验证" : "Verify"}
                 </button>
+              </div>
+              )
+            ) : turnstileSiteKey ? (
+              <div className="w-full max-w-xs">
+                <RealVerificationWidget
+                  type="turnstile"
+                  siteKey={turnstileSiteKey}
+                  onSuccess={handleRealVerified}
+                  stageKey={stageIndex}
+                />
               </div>
             ) : (
               <button
