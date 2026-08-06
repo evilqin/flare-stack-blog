@@ -168,11 +168,20 @@ export const Editor = memo(function Editor({
         editor?.chain().focus().extendMarkRange("link").setLink({ href }).run();
       }
     } else if (modalOpen === "IMAGE") {
-      // Insert every selected image in sequence
-      for (const img of images) {
-        if (!img.url) continue;
-        const { url, ...attrs } = img;
-        editor?.chain().focus().setImage({ src: url, ...attrs }).run();
+      // Insert all selected images in a single transaction so they are not
+      // replaced by one another (separate .run() calls reset the selection).
+      const validImages = images.filter((img) => img.url);
+      if (validImages.length > 0) {
+        // Separate each image with a hard break so they stack on their own lines.
+        const content: Array<{
+          type: string;
+          attrs?: Record<string, unknown>;
+        }> = [];
+        for (const { url, ...attrs } of validImages) {
+          if (content.length > 0) content.push({ type: "hardBreak" });
+          content.push({ type: "image", attrs: { src: url, ...attrs } });
+        }
+        editor?.chain().focus().insertContent(content).run();
       }
     }
 
