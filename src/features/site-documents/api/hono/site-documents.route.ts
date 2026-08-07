@@ -118,16 +118,19 @@ const derivedAsyncDocumentRoutes = [
 
 // Android 数字资产链接:让 TWA (xyz.qin.binbin) 以全屏沉浸方式打开本站
 // 指纹来自 TWA 签名 keystore 的 SHA-256 证书指纹(与 APK 打包时一致)
-const ASSET_LINKS_JSON = JSON.stringify({
-  relation: ["delegate_permission/common.handle_all_urls"],
-  target: {
-    namespace: "android_app",
-    package_name: "xyz.qin.binbin",
-    sha256_cert_fingerprints: [
-      "24:0E:44:BC:5B:F3:39:C2:5C:3C:13:2A:FF:68:1E:E8:76:29:DC:6F:21:BC:B3:8F:D4:15:D0:14:C3:30:10:CA",
-    ],
+// 顶层必须是数组(单个对象会导致 Google 解析失败, TWA 验证不过、卡在启动画面)
+const ASSET_LINKS_JSON = JSON.stringify([
+  {
+    relation: ["delegate_permission/common.handle_all_urls"],
+    target: {
+      namespace: "android_app",
+      package_name: "xyz.qin.binbin",
+      sha256_cert_fingerprints: [
+        "24:0E:44:BC:5B:F3:39:C2:5C:3C:13:2A:FF:68:1E:E8:76:29:DC:6F:21:BC:B3:8F:D4:15:D0:14:C3:30:10:CA",
+      ],
+    },
   },
-});
+]);
 
 const syncDocumentRoutes = [
   {
