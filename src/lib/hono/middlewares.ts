@@ -127,6 +127,7 @@ const SHIELD_ALLOWED_PATHS = new Set([
   "/rss.xml",
   "/site.webmanifest",
   "/sitemap.xml",
+  "/.well-known/assetlinks.json",
 ]);
 
 interface RateLimitOptions {
