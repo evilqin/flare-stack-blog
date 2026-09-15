@@ -1,201 +1,63 @@
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 import { toast } from "sonner";
-import { uploadImageFn } from "@/features/media/api/media.api";
-import { MEDIA_KEYS } from "@/features/media/queries";
-import { formatBytes } from "@/lib/utils";
+import {
+  ACCEPTED_MEDIA_TYPES,
+  MAX_FILE_SIZE,
+} from "@/features/media/media.schema";
+import { orpc, orpcClient } from "@/lib/orpc";
 import { m } from "@/paraglide/messages";
-import type { UploadItem } from "../types";
 
 export function useMediaUpload() {
   const queryClient = useQueryClient();
-  const [isOpen, setIsOpen] = useState(false);
-  const [queue, setQueue] = useState<Array<UploadItem>>([]);
-  const [isDragging, setIsDragging] = useState(false);
+  const [progress, setProgress] = useState<{
+    current: number;
+    total: number;
+  } | null>(null);
 
-  const processingRef = useRef(false);
-  const isMountedRef = useRef(true);
-
-  // 监听组件挂载和卸载
-  useEffect(() => {
-    isMountedRef.current = true;
-    return () => {
-      isMountedRef.current = false;
-    };
-  }, []);
-
-  // Upload mutation
   const uploadMutation = useMutation({
-    mutationFn: async (file: File) => {
-      const formData = new FormData();
-      formData.append("file", file);
-      return await uploadImageFn({ data: formData });
-    },
+    mutationFn: (file: File) => orpcClient.media.upload({ image: file }),
   });
 
-  // Process upload queue
-  useEffect(() => {
-    const processQueue = async () => {
-      const waitingIndex = queue.findIndex((item) => item.status === "WAITING");
-      const item = queue[waitingIndex];
+  const uploadFiles = async (files: Array<File>) => {
+    // Browsers leave `type` empty for some audio extensions (m4a, flac), so
+    // fall back to the extension before rejecting a file outright.
+    const media = files.filter(
+      (file) =>
+        ACCEPTED_MEDIA_TYPES.includes(file.type) ||
+        !file.type ||
+        /\.(mp3|m4a|aac|ogg|wav|flac)$/i.test(file.name),
+    );
+    if (media.length === 0) {
+      toast.error(m.media_validation_file_invalid_type());
+      return;
+    }
 
-      if (waitingIndex === -1 || processingRef.current) {
-        return;
-      }
-
-      // LOCK
-      processingRef.current = true;
-
-      if (!item.file) {
-        setQueue((prev) =>
-          prev.map((q, i) =>
-            i === waitingIndex
-              ? {
-                  ...q,
-                  status: "ERROR",
-                  log: m.media_upload_log_error_no_data(),
-                }
-              : q,
-          ),
-        );
-        processingRef.current = false;
-        return;
-      }
-
-      // Update to UPLOADING
-      setQueue((prev) =>
-        prev.map((q, i) =>
-          i === waitingIndex
-            ? {
-                ...q,
-                status: "UPLOADING",
-                progress: 50,
-                log: m.media_upload_log_stream_sending(),
-              }
-            : q,
-        ),
-      );
-
-      try {
-        const result = await uploadMutation.mutateAsync(item.file);
-        if (result.error) {
-          if (isMountedRef.current) {
-            const message = m.media_upload_error_db();
-
-            setQueue((prev) =>
-              prev.map((q, i) =>
-                i === waitingIndex
-                  ? {
-                      ...q,
-                      status: "ERROR",
-                      progress: 0,
-                      log: m.media_upload_log_error({ message }),
-                    }
-                  : q,
-              ),
-            );
-            toast.error(m.media_upload_fail({ name: item.name }), {
-              description: message,
-            });
-          }
-          return;
+    setProgress({ current: 0, total: media.length });
+    try {
+      for (let i = 0; i < media.length; i++) {
+        const file = media[i];
+        setProgress({ current: i + 1, total: media.length });
+        if (file.size > MAX_FILE_SIZE) {
+          toast.error(m.media_validation_file_too_large());
+          continue;
         }
-
-        if (isMountedRef.current) {
-          setQueue((prev) =>
-            prev.map((q, i) =>
-              i === waitingIndex
-                ? {
-                    ...q,
-                    status: "COMPLETE",
-                    progress: 100,
-                    log: m.media_upload_log_complete(),
-                  }
-                : q,
-            ),
-          );
-
-          toast.success(m.media_upload_success({ name: item.name }));
-          queryClient.invalidateQueries({ queryKey: MEDIA_KEYS.all });
+        try {
+          await uploadMutation.mutateAsync(file);
+          toast.success(m.media_upload_success());
+        } catch {
+          toast.error(m.media_upload_fail({ name: file.name }));
         }
-      } catch (error) {
-        if (isMountedRef.current) {
-          const message =
-            error instanceof Error
-              ? error.message
-              : m.request_error_unknown_title();
-
-          setQueue((prev) =>
-            prev.map((q, i) =>
-              i === waitingIndex
-                ? {
-                    ...q,
-                    status: "ERROR",
-                    progress: 0,
-                    log: m.media_upload_log_error({ message }),
-                  }
-                : q,
-            ),
-          );
-          toast.error(m.media_upload_fail({ name: item.name }), {
-            description: message,
-          });
-        }
-      } finally {
-        // 关键修复：使用 finally 确保锁一定会被释放
-        processingRef.current = false;
       }
-    };
-
-    processQueue();
-  }, [queue, uploadMutation, queryClient]);
-
-  const processFiles = (files: Array<File>) => {
-    const newItems: Array<UploadItem> = files.map((file) => ({
-      id: Math.random().toString(36).substr(2, 9),
-      name: file.name,
-      size: formatBytes(file.size),
-      progress: 0,
-      status: "WAITING" as const,
-      log: m.media_upload_log_init(),
-      file,
-    }));
-    setQueue((prev) => [...prev, ...newItems]);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    setIsDragging(false);
-    if (e.dataTransfer.files.length > 0) {
-      processFiles(Array.from(e.dataTransfer.files));
+      await queryClient.invalidateQueries({ queryKey: orpc.media.key() });
+    } finally {
+      setProgress(null);
     }
   };
 
-  const reset = () => {
-    setQueue([]);
-    processingRef.current = false;
-    setIsOpen(false);
-  };
-
   return {
-    isOpen,
-    setIsOpen,
-    queue,
-    isDragging,
-    handleDragOver,
-    handleDragLeave,
-    handleDrop,
-    processFiles,
-    reset,
+    uploadFiles,
+    progress,
+    isUploading: progress != null,
   };
 }

@@ -1,8 +1,38 @@
-import { useNavigate } from "@tanstack/react-router";
+import { Link, useLocation, useNavigate } from "@tanstack/react-router";
+import { FileText, LayoutDashboard } from "lucide-react";
 import { useCallback, useState } from "react";
+import { StatusPage } from "@/components/common/status-page";
 import { m } from "@/paraglide/messages";
 
-/* ─── Mini-Game: 星星收集 ─── */
+export function NotFound() {
+  const pathname = useLocation({ select: (location) => location.pathname });
+  const admin = /^\/admin(?:\/|$)/.test(pathname);
+  return admin ? <AdminNotFound /> : <NotFoundGame />;
+}
+
+function AdminNotFound() {
+  return (
+    <StatusPage
+      code="404"
+      title={m.not_found_title()}
+      description={m.admin_not_found_desc()}
+      action={
+        <>
+          <Link to="/admin" className="fuwari-btn-primary">
+            <LayoutDashboard size={18} aria-hidden="true" />
+            {m.error_back_dashboard()}
+          </Link>
+          <Link to="/admin/posts" className="fuwari-btn-regular">
+            <FileText size={18} aria-hidden="true" />
+            {m.admin_sidebar_posts()}
+          </Link>
+        </>
+      }
+    />
+  );
+}
+
+/* ─── Mini-game: collect the floating stars ─── */
 const STAR_COLORS = [
   "bg-pink-400/30 hover:bg-pink-400/60",
   "bg-sky-400/30 hover:bg-sky-400/60",
@@ -11,6 +41,14 @@ const STAR_COLORS = [
   "bg-violet-400/30 hover:bg-violet-400/60",
 ];
 const STAR_EMOJIS = ["⭐", "🌟", "✨", "⭐", "🌟"];
+const STAR_POSITIONS = [
+  { top: "12%", left: "8%" },
+  { top: "18%", right: "12%" },
+  { top: "55%", left: "5%" },
+  { top: "65%", right: "8%" },
+  { top: "80%", left: "50%" },
+];
+const STAR_DELAYS = [0, 200, 400, 600, 800];
 
 function FloatingStar({
   index,
@@ -21,49 +59,38 @@ function FloatingStar({
   onCollect: () => void;
   collected: boolean;
 }) {
-  const positions = [
-    { top: "12%", left: "8%" },
-    { top: "18%", right: "12%" },
-    { top: "55%", left: "5%" },
-    { top: "65%", right: "8%" },
-    { top: "80%", left: "50%" },
-  ];
-  const delays = [0, 200, 400, 600, 800];
-  const pos = positions[index] ?? positions[0];
-  const delay = delays[index] ?? 0;
-
   if (collected) return null;
-
   return (
     <button
       type="button"
       onClick={onCollect}
       className={`absolute z-10 w-8 h-8 md:w-10 md:h-10 rounded-full ${STAR_COLORS[index]} flex items-center justify-center text-sm transition-all duration-300 hover:scale-150 hover:shadow-lg hover:shadow-current animate-in fade-in slide-in-from-bottom-2`}
       style={{
-        ...pos,
-        animationDelay: `${delay}ms`,
+        ...STAR_POSITIONS[index],
+        animationDelay: `${STAR_DELAYS[index]}ms`,
         animationDuration: "600ms",
       }}
       aria-label="Collect star"
     >
-      <span className="opacity-80 group-hover:opacity-100">
-        {STAR_EMOJIS[index]}
-      </span>
+      <span className="opacity-80">{STAR_EMOJIS[index]}</span>
     </button>
   );
 }
 
-/* ─── Main Component ─── */
-export function NotFound() {
+const DIGIT_EMOJIS = [
+  ["👻", "💀", "🛸", "👽"],
+  ["🌀", "⭐", "✨", "🌈"],
+  ["🔥", "💪", "⚡", "🎯"],
+];
+
+function NotFoundGame() {
   const navigate = useNavigate();
   const [collectedStars, setCollectedStars] = useState<Set<number>>(new Set());
-  const [digitEmojis, setDigitEmojis] = useState<Record<number, string | null>>(
-    {
-      0: null,
-      1: null,
-      2: null,
-    },
-  );
+  const [digitEmojis, setDigitEmojis] = useState<Record<number, string | null>>({
+    0: null,
+    1: null,
+    2: null,
+  });
   const [showCompletion, setShowCompletion] = useState(false);
 
   const handleCollect = useCallback((index: number) => {
@@ -78,12 +105,7 @@ export function NotFound() {
   }, []);
 
   const handleDigitClick = useCallback((index: number) => {
-    const emojis = [
-      ["👻", "💀", "🛸", "👽"],
-      ["🌀", "⭐", "✨", "🌈"],
-      ["🔥", "💪", "⚡", "🎯"],
-    ];
-    const pool = emojis[index] ?? ["🤔"];
+    const pool = DIGIT_EMOJIS[index] ?? ["🤔"];
     setDigitEmojis((prev) => ({
       ...prev,
       [index]: pool[Math.floor(Math.random() * pool.length)],
@@ -97,7 +119,6 @@ export function NotFound() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen w-full p-6 text-center bg-background relative overflow-hidden">
-      {/* Completion overlay */}
       {showCompletion && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/90 animate-in fade-in duration-300">
           <div className="text-center space-y-4 animate-in zoom-in-150 duration-500">
@@ -106,6 +127,7 @@ export function NotFound() {
               All stars collected!
             </h3>
             <button
+              type="button"
               onClick={() => navigate({ to: "/" })}
               className="inline-flex items-center gap-2 px-6 py-3 text-xs font-mono uppercase tracking-[0.3em] text-foreground border border-foreground/30 hover:border-foreground rounded-sm transition-all duration-300"
             >
@@ -115,7 +137,6 @@ export function NotFound() {
         </div>
       )}
 
-      {/* Floating stars */}
       {Array.from({ length: 5 }, (_, i) => (
         <FloatingStar
           key={i}
@@ -126,13 +147,11 @@ export function NotFound() {
       ))}
 
       <div className="space-y-8 animate-in fade-in duration-500 max-w-md relative z-10">
-        {/* 404 Header */}
         <div className="space-y-3">
           <p className="text-[10px] font-mono uppercase tracking-[0.4em] text-muted-foreground/40">
             [ 404 — {m.not_found_title()} ]
           </p>
 
-          {/* Interactive digits */}
           <div className="flex items-center justify-center gap-3">
             {["4", "0", "4"].map((d, i) => (
               <button
@@ -160,7 +179,6 @@ export function NotFound() {
           </p>
         </div>
 
-        {/* Game hint */}
         <p className="text-[10px] font-mono text-muted-foreground/40">
           {allCollected
             ? "✨ All collected! ✨"
@@ -169,8 +187,8 @@ export function NotFound() {
               : "See something sparkling? Click it! ⭐"}
         </p>
 
-        {/* Return button */}
         <button
+          type="button"
           onClick={() => navigate({ to: "/" })}
           className="inline-flex items-center gap-2 px-5 py-2.5 text-xs font-mono uppercase tracking-[0.3em] text-muted-foreground/60 hover:text-foreground border border-border/30 hover:border-foreground/60 rounded-sm transition-all duration-300"
         >

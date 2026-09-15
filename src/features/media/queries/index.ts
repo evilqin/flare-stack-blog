@@ -1,60 +1,28 @@
-import { infiniteQueryOptions, queryOptions } from "@tanstack/react-query";
-import {
-  getLinkedMediaKeysFn,
-  getMediaFn,
-  getTotalMediaSizeFn,
-} from "../api/media.api";
-
-export const MEDIA_KEYS = {
-  all: ["media"] as const,
-
-  // Parent keys (static arrays for prefix invalidation)
-  lists: ["media", "list"] as const,
-  totalSize: ["media", "total-size"] as const,
-  linked: ["media", "linked-keys"] as const,
-
-  // Child keys (functions for specific queries)
-  list: (
-    search: string = "",
-    unusedOnly: boolean = false,
-    mimeType: string = "all",
-  ) => ["media", "list", search, unusedOnly, mimeType] as const,
-  linkedKeys: (keys: string) => ["media", "linked-keys", keys] as const,
-  linkedPosts: (key: string) => ["media", "linked-posts", key] as const,
-};
+import type { MediaKind } from "@/features/media/media.schema";
+import { orpc } from "@/lib/orpc";
 
 export function mediaInfiniteQueryOptions(
   search: string = "",
   unusedOnly: boolean = false,
-  mimeType: string = "all",
+  mimeType: MediaKind = "all",
 ) {
-  return infiniteQueryOptions({
-    queryKey: MEDIA_KEYS.list(search, unusedOnly, mimeType),
-    queryFn: ({ pageParam }) =>
-      getMediaFn({
-        data: {
-          cursor: pageParam,
-          search: search || undefined,
-          unusedOnly: unusedOnly || undefined,
-          mimeType: mimeType as "all" | "image" | "audio" | undefined,
-        },
-      }),
-    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
+  return orpc.media.list.infiniteOptions({
+    input: (pageParam: number | undefined) => ({
+      cursor: pageParam,
+      search: search || undefined,
+      unusedOnly: unusedOnly || undefined,
+      mimeType: mimeType === "all" ? undefined : mimeType,
+    }),
     initialPageParam: undefined as number | undefined,
+    getNextPageParam: (lastPage) => lastPage.nextCursor ?? undefined,
   });
 }
 
-export function linkedMediaKeysQuery(keys: Array<string>) {
-  // Stable key for linked media; use joined keys to avoid referential changes
-  const joinedKeys = keys.join("|");
-  return queryOptions({
-    queryKey: MEDIA_KEYS.linkedKeys(joinedKeys),
-    queryFn: () => getLinkedMediaKeysFn({ data: { keys } }),
-    staleTime: 30000,
+export function linkedPostsQuery(key: string) {
+  return orpc.media.linkedPosts.queryOptions({
+    input: { key },
+    enabled: !!key,
   });
 }
 
-export const totalMediaSizeQuery = queryOptions({
-  queryKey: MEDIA_KEYS.totalSize,
-  queryFn: () => getTotalMediaSizeFn(),
-});
+export const mediaStatsQuery = orpc.media.stats.queryOptions();

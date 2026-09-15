@@ -22,3 +22,4 @@ docs/superpowers/
 .cache/
 *.tsbuildinfo
 .fallow
+.scratch

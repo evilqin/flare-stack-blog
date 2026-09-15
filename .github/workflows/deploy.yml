@@ -64,30 +64,37 @@ jobs:
             secrets/data/blog *
 
       # === Fork repos: use repository secrets ===
+      #
+      # Build-time variables (WORKER_NAME, QUEUE_NAME, ...) are read by
+      # `bun run wrangler:prepare`. WORKER_NAME and QUEUE_NAME must match the
+      # EXISTING Worker and queue in Cloudflare — a wrong value silently creates
+      # a second Worker and binds the custom domain to it.
       - name: "[Fork] Import secrets from repository"
         if: github.repository != 'du2333/flare-stack-blog'
         run: |
           echo "CLOUDFLARE_API_TOKEN=${{ secrets.CLOUDFLARE_API_TOKEN }}" >> $GITHUB_ENV
           echo "CLOUDFLARE_ACCOUNT_ID=${{ secrets.CLOUDFLARE_ACCOUNT_ID }}" >> $GITHUB_ENV
+          echo "WORKER_NAME=${{ secrets.WORKER_NAME }}" >> $GITHUB_ENV
+          echo "QUEUE_NAME=${{ secrets.QUEUE_NAME }}" >> $GITHUB_ENV
           echo "D1_DATABASE_ID=${{ secrets.D1_DATABASE_ID }}" >> $GITHUB_ENV
           echo "KV_NAMESPACE_ID=${{ secrets.KV_NAMESPACE_ID }}" >> $GITHUB_ENV
           echo "BUCKET_NAME=${{ secrets.BUCKET_NAME }}" >> $GITHUB_ENV
           echo "BETTER_AUTH_SECRET=${{ secrets.BETTER_AUTH_SECRET }}" >> $GITHUB_ENV
           echo "BETTER_AUTH_URL=${{ secrets.BETTER_AUTH_URL }}" >> $GITHUB_ENV
-          echo "ADMIN_EMAIL=${{ secrets.ADMIN_EMAIL }}" >> $GITHUB_ENV
           echo "GITHUB_CLIENT_ID=${{ secrets.GH_CLIENT_ID }}" >> $GITHUB_ENV
           echo "GITHUB_CLIENT_SECRET=${{ secrets.GH_CLIENT_SECRET }}" >> $GITHUB_ENV
           echo "GITHUB_TOKEN=${{ secrets.GH_TOKEN }}" >> $GITHUB_ENV
+          echo "DOMAIN=${{ secrets.DOMAIN }}" >> $GITHUB_ENV
+          echo "UMAMI_SRC=${{ secrets.UMAMI_SRC }}" >> $GITHUB_ENV
+          echo "UMAMI_WEBSITE_ID=${{ secrets.UMAMI_WEBSITE_ID }}" >> $GITHUB_ENV
+          echo "UMAMI_API_KEY=${{ secrets.UMAMI_API_KEY }}" >> $GITHUB_ENV
+          echo "VITE_UMAMI_WEBSITE_ID=${{ vars.VITE_UMAMI_WEBSITE_ID }}" >> $GITHUB_ENV
+          echo "VITE_TURNSTILE_SITE_KEY=${{ vars.VITE_TURNSTILE_SITE_KEY }}" >> $GITHUB_ENV
+          echo "TURNSTILE_SECRET_KEY=${{ secrets.TURNSTILE_SECRET_KEY }}" >> $GITHUB_ENV
+          # Kept only to purge the stale CDN cache left over from v1, which served
+          # HTML with s-maxage=1y. Drop these two secrets once the cache is clear.
           echo "CLOUDFLARE_ZONE_ID=${{ secrets.CLOUDFLARE_ZONE_ID }}" >> $GITHUB_ENV
           echo "CLOUDFLARE_PURGE_API_TOKEN=${{ secrets.CLOUDFLARE_PURGE_API_TOKEN }}" >> $GITHUB_ENV
-          echo "DOMAIN=${{ secrets.DOMAIN }}" >> $GITHUB_ENV
-          echo "CDN_DOMAIN=${{ secrets.CDN_DOMAIN }}" >> $GITHUB_ENV
-          echo "UMAMI_SRC=${{ secrets.UMAMI_SRC }}" >> $GITHUB_ENV
-          echo "VITE_UMAMI_WEBSITE_ID=${{ vars.VITE_UMAMI_WEBSITE_ID }}" >> $GITHUB_ENV
-          echo "PAGEVIEW_SALT=${{ secrets.PAGEVIEW_SALT }}" >> $GITHUB_ENV
-          echo "VITE_TURNSTILE_SITE_KEY=${{ vars.VITE_TURNSTILE_SITE_KEY }}" >> $GITHUB_ENV
-          echo "THEME=${{ vars.THEME }}" >> $GITHUB_ENV
-          echo "TURNSTILE_SECRET_KEY=${{ secrets.TURNSTILE_SECRET_KEY }}" >> $GITHUB_ENV
 
       - name: Inject Resource IDs
         run: |
@@ -103,20 +110,32 @@ jobs:
           {
             "BETTER_AUTH_SECRET": "$BETTER_AUTH_SECRET",
             "BETTER_AUTH_URL": "$BETTER_AUTH_URL",
-            "ADMIN_EMAIL": "$ADMIN_EMAIL",
             "GITHUB_CLIENT_ID": "$GITHUB_CLIENT_ID",
             "GITHUB_CLIENT_SECRET": "$GITHUB_CLIENT_SECRET",
-            "CLOUDFLARE_ZONE_ID": "$CLOUDFLARE_ZONE_ID",
-            "CLOUDFLARE_PURGE_API_TOKEN": "$CLOUDFLARE_PURGE_API_TOKEN",
             "DOMAIN": "$DOMAIN",
-            "CDN_DOMAIN": "$CDN_DOMAIN",
-            "VITE_UMAMI_WEBSITE_ID": "$VITE_UMAMI_WEBSITE_ID",
             "UMAMI_SRC": "$UMAMI_SRC",
-            "PAGEVIEW_SALT": "$PAGEVIEW_SALT",
+            "UMAMI_WEBSITE_ID": "$UMAMI_WEBSITE_ID",
+            "UMAMI_API_KEY": "$UMAMI_API_KEY",
+            "VITE_UMAMI_WEBSITE_ID": "$VITE_UMAMI_WEBSITE_ID",
             "TURNSTILE_SECRET_KEY": "$TURNSTILE_SECRET_KEY",
             "GITHUB_TOKEN": "$GITHUB_TOKEN"
           }
           EOF
+
+      # Migrations 0013/0014/0021 are destructive and irreversible: they rewrite
+      # comment bodies in place, drop page_views and drop friend_links.contact_email.
+      # This export is the only copy of that data that survives the deploy.
+      - name: Backup D1 before migrating
+        run: |
+          bunx wrangler d1 export DB --remote --output=d1-backup.sql
+          ls -lh d1-backup.sql
+
+      - name: Upload D1 backup artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: d1-backup-${{ github.run_number }}
+          path: d1-backup.sql
+          retention-days: 30
 
       - name: Deploy to Cloudflare Workers
         run: |
@@ -124,12 +143,17 @@ jobs:
           bun run build
           bun run deploy
 
+      # v1 served HTML with `s-maxage=31536000`. Those edge entries outlive the
+      # deploy unless they are purged, so this step is what actually makes the
+      # new site visible. Purge by host (not by URL prefix) to cover everything.
       - name: Purge Cloudflare CDN Cache
         run: |
-          PURGE_DOMAIN=${CDN_DOMAIN:-$DOMAIN}
-          echo "Purging CDN cache for $PURGE_DOMAIN"
-          curl -s -X POST "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/purge_cache" \
+          HOSTS=$(printf '%s\n' "${CDN_DOMAIN:-$DOMAIN}" "$DOMAIN" | sort -u | grep -v '^$' \
+            | sed 's/.*/"&"/' | paste -sd, -)
+          echo "Purging CDN cache for hosts: $HOSTS"
+          curl -sS --fail-with-body -X POST \
+            "https://api.cloudflare.com/client/v4/zones/$CLOUDFLARE_ZONE_ID/purge_cache" \
             -H "Authorization: Bearer $CLOUDFLARE_PURGE_API_TOKEN" \
             -H "Content-Type: application/json" \
-            --data '{"prefixes":["'$PURGE_DOMAIN'"]}'
+            --data "{\"hosts\":[$HOSTS]}"
           echo ""

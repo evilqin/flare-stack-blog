@@ -1,15 +1,14 @@
+import jetbrainsMonoCss from "@fontsource-variable/jetbrains-mono/wght.css?url";
 import { useSuspenseQuery } from "@tanstack/react-query";
 import { createFileRoute, notFound } from "@tanstack/react-router";
-import theme from "@theme";
-import { useEffect } from "react";
+import katexCss from "katex/dist/katex.min.css?url";
 import { z } from "zod";
+import { NotFound } from "@/components/common/not-found";
 import { siteConfigQuery, siteDomainQuery } from "@/features/config/queries";
-import { recordPageViewFn } from "@/features/pageview/api/pageview.api";
-import {
-  adjacentPostsQuery,
-  postBySlugQuery,
-  relatedPostsQuery,
-} from "@/features/posts/queries";
+import { PostPage } from "@/features/posts/components/post-page";
+import { PostPageSkeleton } from "@/features/posts/components/post-page-skeleton";
+import { adjacentPostsQuery, postBySlugQuery } from "@/features/posts/queries";
+import { jsonContentHasType } from "@/features/posts/utils/content";
 import {
   buildArticleJsonLd,
   buildCanonicalUrl,
@@ -17,28 +16,20 @@ import {
 } from "@/lib/seo";
 
 const searchSchema = z.object({
-  highlightCommentId: z.coerce.number().optional(),
-  rootId: z.number().optional(),
+  comment: z.coerce.number().optional(),
 });
-
-const { relatedPostsLimit } = theme.config.post;
 
 export const Route = createFileRoute("/_public/post/$slug")({
   validateSearch: searchSchema,
   component: RouteComponent,
+  notFoundComponent: NotFound,
   loader: async ({ context, params }) => {
-    // 1. Critical: Main post data - use serverFn (executes directly on server, no HTTP)
     const [post, domain, siteConfig] = await Promise.all([
       context.queryClient.ensureQueryData(postBySlugQuery(params.slug)),
       context.queryClient.ensureQueryData(siteDomainQuery),
       context.queryClient.ensureQueryData(siteConfigQuery),
+      context.queryClient.ensureQueryData(adjacentPostsQuery(params.slug)),
     ]);
-
-    // 2. Deferred: Related posts + adjacent posts (prefetch only, don't await)
-    void context.queryClient.prefetchQuery(
-      relatedPostsQuery(params.slug, relatedPostsLimit),
-    );
-    void context.queryClient.prefetchQuery(adjacentPostsQuery(params.slug));
 
     if (!post) throw notFound();
 
@@ -54,6 +45,18 @@ export const Route = createFileRoute("/_public/post/$slug")({
   head: ({ loaderData }) => {
     const post = loaderData?.post;
     const canonicalHref = loaderData?.canonicalHref ?? "";
+    const coverUrl =
+      post?.cover && canonicalHref
+        ? new URL(post.cover.url, canonicalHref).toString()
+        : undefined;
+
+    const contentStylesheets: Array<{ rel: "stylesheet"; href: string }> = [];
+    if (jsonContentHasType(post?.contentJson, ["inlineMath", "blockMath"])) {
+      contentStylesheets.push({ rel: "stylesheet", href: katexCss });
+    }
+    if (jsonContentHasType(post?.contentJson, "codeBlock")) {
+      contentStylesheets.push({ rel: "stylesheet", href: jetbrainsMonoCss });
+    }
 
     return {
       meta: [
@@ -68,8 +71,15 @@ export const Route = createFileRoute("/_public/post/$slug")({
         { property: "og:description", content: post?.summary ?? "" },
         { property: "og:type", content: "article" },
         { property: "og:url", content: canonicalHref },
+        ...(coverUrl
+          ? [
+              { property: "og:image", content: coverUrl },
+              { name: "twitter:card", content: "summary_large_image" },
+              { name: "twitter:image", content: coverUrl },
+            ]
+          : []),
       ],
-      links: [canonicalLink(canonicalHref)],
+      links: [canonicalLink(canonicalHref), ...contentStylesheets],
       scripts: post
         ? [
             {
@@ -77,35 +87,25 @@ export const Route = createFileRoute("/_public/post/$slug")({
               children: buildArticleJsonLd({
                 authorName: loaderData.authorName,
                 canonicalHref,
-                post,
+                post: {
+                  ...post,
+                  image: coverUrl,
+                },
               }),
             },
           ]
         : [],
     };
   },
-  pendingComponent: () => <theme.PostPageSkeleton />,
-  pendingMs: __THEME_CONFIG__.pendingMs,
+  pendingComponent: () => <PostPageSkeleton />,
+  pendingMs: 0,
 });
 
 function RouteComponent() {
   const { slug } = Route.useParams();
   const { data: post } = useSuspenseQuery(postBySlugQuery(slug));
-  const { data: adjacent } = useSuspenseQuery(adjacentPostsQuery(slug));
-
-  useEffect(() => {
-    if (!post?.id) return;
-    try {
-      const key = `pv:${post.id}`;
-      if (sessionStorage.getItem(key)) return;
-      sessionStorage.setItem(key, "1");
-    } catch {
-      // Safari private mode / storage disabled — record anyway
-    }
-    void recordPageViewFn({ data: { postId: post.id } });
-  }, [post?.id]);
 
   if (!post) throw notFound();
 
-  return <theme.PostPage post={post} adjacentPosts={adjacent} />;
+  return <PostPage post={post} />;
 }

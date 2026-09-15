@@ -1,0 +1,12 @@
+[
+  {
+    "relation": ["delegate_permission/common.handle_all_urls"],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "xyz.qin.binbin",
+      "sha256_cert_fingerprints": [
+        "24:0E:44:BC:5B:F3:39:C2:5C:3C:13:2A:FF:68:1E:E8:76:29:DC:6F:21:BC:B3:8F:D4:15:D0:14:C3:30:10:CA"
+      ]
+    }
+  }
+]

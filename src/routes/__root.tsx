@@ -1,21 +1,36 @@
 import type { QueryClient } from "@tanstack/react-query";
 import {
+  ClientOnly,
   createRootRouteWithContext,
   HeadContent,
   Scripts,
   useRouteContext,
 } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
-import theme from "@theme";
+import { createIsomorphicFn } from "@tanstack/react-start";
+import { lazy, Suspense, type ComponentType } from "react";
 import { ThemeProvider } from "@/components/common/theme-provider";
+import { getFuwariThemeStyle } from "@/components/layout/document-style";
 import { siteConfigQuery } from "@/features/config/queries";
-import { clientEnv } from "@/lib/env/client.env";
 import { getLocale } from "@/paraglide/runtime";
 import appCss from "@/styles.css?url";
 
 interface MyRouterContext {
   queryClient: QueryClient;
 }
+
+const loadDevtools = createIsomorphicFn()
+  .client(() => import("@/integrations/tanstack-devtools"))
+  .server(() =>
+    Promise.resolve({
+      default: function DevtoolsPlaceholder() {
+        return null;
+      },
+    }),
+  );
+
+const AppDevtools = lazy(
+  () => loadDevtools() as Promise<{ default: ComponentType }>,
+);
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
   beforeLoad: async ({ context }) => {
@@ -24,11 +39,12 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
     return { siteConfig };
   },
   loader: async ({ context }) => {
-    return { siteConfig: context.siteConfig };
+    return {
+      siteConfig: context.siteConfig,
+      currentYear: new Date().getUTCFullYear(),
+    };
   },
   head: ({ loaderData }) => {
-    const env = clientEnv();
-
     return {
       meta: [
         {
@@ -95,60 +111,10 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
           href: "/feed.json",
         },
       ],
-      scripts: env.VITE_UMAMI_WEBSITE_ID
-        ? [
-            {
-              src: "/stats.js",
-              defer: true,
-              "data-website-id": env.VITE_UMAMI_WEBSITE_ID,
-            },
-          ]
-        : [],
     };
   },
   shellComponent: RootDocument,
 });
-
-/**
- * Dev-only developer tools panel.
- * Statically imported devtools would ship in the production bundle and run on
- * every page; loading them lazily here keeps them out of the client critical
- * path entirely (the chunk is only fetched when running the dev server).
- */
-function Devtools() {
-  const [panel, setPanel] = useState<React.ReactNode>(null);
-
-  useEffect(() => {
-    if (import.meta.env.DEV === false) return;
-    let cancelled = false;
-    Promise.all([
-      import("@tanstack/react-devtools"),
-      import("@tanstack/react-router-devtools"),
-      import("@/integrations/tanstack-query/devtools"),
-    ]).then(([td, rtd, qd]) => {
-      if (cancelled) return;
-      setPanel(
-        <td.TanStackDevtools
-          config={{
-            position: "bottom-right",
-          }}
-          plugins={[
-            {
-              name: "Tanstack Router",
-              render: <rtd.TanStackRouterDevtoolsPanel />,
-            },
-            qd.default,
-          ]}
-        />,
-      );
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return panel;
-}
 
 function RootDocument({ children }: { children: React.ReactNode }) {
   const locale = getLocale();
@@ -158,14 +124,18 @@ function RootDocument({ children }: { children: React.ReactNode }) {
     <html
       lang={locale}
       suppressHydrationWarning
-      style={theme.getDocumentStyle?.(siteConfig)}
+      style={getFuwariThemeStyle(siteConfig)}
     >
       <head>
         <HeadContent />
       </head>
       <body>
         <ThemeProvider>{children}</ThemeProvider>
-        <Devtools />
+        <ClientOnly>
+          <Suspense fallback={null}>
+            <AppDevtools />
+          </Suspense>
+        </ClientOnly>
         <Scripts />
       </body>
     </html>
