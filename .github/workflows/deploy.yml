@@ -122,35 +122,19 @@ jobs:
           }
           EOF
 
-      # Migrations 0013/0014/0021 are destructive and irreversible: they rewrite
-      # comment bodies in place, drop page_views and drop friend_links.contact_email.
-      # This export is the only copy of that data that survives the deploy.
+      # NOTE: the pre-migration `wrangler d1 export` backup was removed on
+      # 2026-10-02. Migration 0019 added an FTS5 virtual table
+      # (`search_documents_fts`), and D1's export API rejects any database
+      # containing one server-side — before table filtering, and regardless of
+      # --no-schema/--no-data — so the step failed unconditionally and blocked
+      # every deploy since 2026-09-16. cloudflare/workers-sdk#6305.
       #
-      # Migration 0019 added FTS5 virtual tables, and D1's export API rejects any
-      # database containing them server-side (the shadow tables need
-      # PRAGMA writable_schema, which D1 does not allow) — so a full dump can no
-      # longer succeed. Fall back to a data-only dump: no CREATE TABLE statements
-      # means no FTS5 shadow rows, and the schema stays reproducible from
-      # migrations/. See cloudflare/workers-sdk#6305.
-      - name: Backup D1 before migrating
-        run: |
-          set -euo pipefail
-          if bunx wrangler d1 export DB --remote --output=d1-backup.sql; then
-            echo "Full D1 export succeeded."
-          else
-            echo "::warning::Full D1 export failed (FTS5 virtual tables are not exportable); retrying with --no-schema."
-            rm -f d1-backup.sql
-            bunx wrangler d1 export DB --remote --no-schema --output=d1-backup.sql
-          fi
-          ls -lh d1-backup.sql
-
-      - name: Upload D1 backup artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: d1-backup-${{ github.run_number }}
-          path: d1-backup.sql
-          retention-days: 30
-
+      # There is currently NO backup step. Before running another destructive
+      # migration (0013/0014/0021 rewrote comment bodies in place, dropped
+      # page_views and friend_links.contact_email), restore a safety net first:
+      # either record a D1 Time Travel bookmark here
+      # (`bunx wrangler d1 time-travel info DB --remote`) or drop
+      # `search_documents_fts` + its triggers, export, then recreate them.
       - name: Deploy to Cloudflare Workers
         run: |
           bunx wrangler secret bulk secrets.json
