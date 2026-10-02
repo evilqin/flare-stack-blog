@@ -30,13 +30,30 @@ const PostSelectSchema = createSelectSchema(PostsTable, {
 }).omit({
   publicSnapshotJson: true,
 });
+/**
+ * Strict on purpose, and narrower than the table.
+ *
+ * `createUpdateSchema` takes every column, so `id`, `createdAt` and
+ * `updatedAt` were writable: a PATCH could move a row to another id or
+ * backdate it, and `updatedAt` is the default list sort key, so a forged
+ * value buried the post. They are the server's to set, never the client's.
+ *
+ * Publication is not a field either. A plain object would silently strip
+ * these: a client that PATCHed `{ status: "published" }` got a 200 back and a
+ * post that was still a draft. Rejecting the key says so instead.
+ */
 const PostUpdateSchema = createUpdateSchema(PostsTable, {
   contentJson: NullableJsonContentSchema.optional(),
-}).omit({
-  publicSnapshotJson: true,
-  publicSlug: true,
-  status: true,
-});
+})
+  .omit({
+    publicSnapshotJson: true,
+    publicSlug: true,
+    status: true,
+    id: true,
+    createdAt: true,
+    updatedAt: true,
+  })
+  .strict();
 
 export const PostItemSchema = PostSelectSchema.omit({
   contentJson: true,
@@ -175,13 +192,20 @@ export const GetPostsInputSchema = z.object({
   publicOnly: z.boolean().optional(),
   search: z.string().optional(),
   sortDir: z.enum(["ASC", "DESC"]).optional(),
-  sortBy: z.enum(["publishedAt", "updatedAt"]).optional(),
+  sortBy: z.enum(["publishedAt", "updatedAt", "id"]).optional(),
+  includeContent: z
+    .boolean()
+    .optional()
+    .describe(
+      "Include the editable TipTap body of every item. Ignored when taxonomy.scope is public, where every column is read from the Public Content Snapshot instead. Pagination, the 50 item limit and every other response field stay the same.",
+    ),
 });
 
 const GetPostsCountInputSchema = GetPostsInputSchema.omit({
   offset: true,
   limit: true,
   sortDir: true,
+  includeContent: true,
 });
 
 const AdminPostListItemSchema = z.object({
@@ -194,6 +218,9 @@ const AdminPostListItemSchema = z.object({
   pinnedAt: coercedDateNullable,
   createdAt: coercedDate,
   updatedAt: coercedDate,
+  contentJson: NullableJsonContentSchema.optional().describe(
+    "Only returned when the request asks for includeContent=true outside the public taxonomy scope.",
+  ),
 });
 
 const AdminPostStatusCountsSchema = z.object({
@@ -211,6 +238,29 @@ export const AdminPostListPageSchema = z.object({
 });
 
 export const FindPostByIdInputSchema = z.object({ id: z.number() });
+
+/**
+ * Content for a newly created draft. When present, `POST /api/admin/posts`
+ * always creates a new draft instead of reusing an existing empty one, so
+ * several external clients can create posts without colliding.
+ */
+export const CreatePostDataSchema = z.object({
+  title: z
+    .string()
+    .trim()
+    .min(1)
+    .describe("Draft title; a unique slug is generated from it."),
+  summary: z.string().nullable().optional(),
+  contentJson: NullableJsonContentSchema.optional(),
+});
+
+export const CreatePostInputSchema = z
+  .object({
+    data: CreatePostDataSchema.optional().describe(
+      "Omit to keep the get-or-create-empty-draft behavior used by the Admin UI.",
+    ),
+  })
+  .optional();
 
 export const UpdatePostInputSchema = z.object({
   id: z.number(),
@@ -231,6 +281,8 @@ export type GenerateSlugInput = z.infer<typeof GenerateSlugInputSchema>;
 export type GetPostsInput = z.infer<typeof GetPostsInputSchema>;
 export type GetPostsCountInput = z.infer<typeof GetPostsCountInputSchema>;
 export type FindPostByIdInput = z.infer<typeof FindPostByIdInputSchema>;
+export type CreatePostData = z.infer<typeof CreatePostDataSchema>;
+export type CreatePostInput = z.infer<typeof CreatePostInputSchema>;
 export type UpdatePostInput = z.infer<typeof UpdatePostInputSchema>;
 export type DeletePostInput = z.infer<typeof DeletePostInputSchema>;
 export type PublishPostInput = z.infer<typeof PublishPostInputSchema>;
