@@ -250,6 +250,13 @@
   .bar { height: 6px; border-radius: 999px; background: var(--card-2); overflow: hidden; margin-top: 11px; }
   .bar > i { display: block; height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent-2)); }
   .spark { width: 100%; height: 92px; display: block; margin-top: 4px; }
+  .empty-chart {
+    height: 92px; margin-top: 4px; border-radius: 10px;
+    border: 1px dashed var(--border);
+    display: grid; place-items: center;
+    font-size: 12.5px; color: var(--muted);
+  }
+  .empty-note { padding: 14px 0; text-align: center; font-size: 12.5px; color: var(--muted); }
   .kv { display: flex; justify-content: space-between; font-size: 13.5px; padding: 7px 0; border-bottom: 1px solid rgba(31,42,69,.55); }
   .kv:last-child { border-bottom: none; }
   .kv span { color: var(--muted); }
@@ -418,7 +425,7 @@
         <div class="card">
           <div class="cap">账户余额</div>
           <div class="big">$<span id="balance">50.00</span> <small>USD</small></div>
-          <div class="bar"><i id="balance-bar" style="width:4%"></i></div>
+          <div class="bar"><i id="balance-bar" style="width:0%"></i></div>
           <div class="hint">新用户赠送 $50.00，已用 $<span id="used">0.00</span></div>
         </div>
       </div>
@@ -426,21 +433,21 @@
       <div class="cards">
         <div class="card">
           <div class="cap">最近 7 天调用量</div>
-          <svg class="spark" id="spark" viewBox="0 0 320 92" preserveAspectRatio="none"></svg>
-          <div class="hint">单位：次 / 天</div>
+          <div class="empty-chart">暂无调用数据</div>
+          <div class="hint">还没有产生调用，接入后会在这里显示用量</div>
         </div>
         <div class="card">
           <div class="cap">调用统计</div>
-          <div class="kv"><span>总请求数</span><b id="s-total">1,284</b></div>
-          <div class="kv"><span>成功率</span><b>100.00%</b></div>
-          <div class="kv"><span>平均延迟</span><b>143 ms</b></div>
+          <div class="kv"><span>总请求数</span><b>0</b></div>
+          <div class="kv"><span>成功率</span><b>—</b></div>
+          <div class="kv"><span>平均延迟</span><b>—</b></div>
           <div class="kv"><span>当前套餐</span><b>免费体验版</b></div>
         </div>
       </div>
 
       <div class="card" style="margin-top:14px">
         <div class="cap">最近调用</div>
-        <div id="recent"></div>
+        <div class="empty-note">暂无调用记录</div>
       </div>
     </div>
   </section>
@@ -676,48 +683,6 @@
     document.getElementById("api-key").textContent = state.key;
     document.getElementById("u-avatar").style.display = "";
     document.getElementById("console").scrollIntoView({ behavior: "smooth", block: "start" });
-    renderStats();
-  }
-
-  // Fixed per-account figures, so a refresh never changes what the user saw.
-  function renderStats() {
-    var days = [42, 88, 61, 130, 96, 158, 74];
-    var labels = ["五", "六", "日", "一", "二", "三", "四"];
-    var max = Math.max.apply(null, days);
-    var pts = days.map(function (v, i) {
-      var x = (i / (days.length - 1)) * 312 + 4;
-      var y = 84 - (v / max) * 68;
-      return x.toFixed(1) + "," + y.toFixed(1);
-    }).join(" ");
-    document.getElementById("spark").innerHTML =
-      '<defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1">' +
-      '<stop offset="0%" stop-color="#5b8cff" stop-opacity=".38"/>' +
-      '<stop offset="100%" stop-color="#5b8cff" stop-opacity="0"/></linearGradient></defs>' +
-      '<polygon points="4,88 ' + pts + ' 316,88" fill="url(#g)"/>' +
-      '<polyline points="' + pts + '" fill="none" stroke="#5b8cff" stroke-width="2" ' +
-      'stroke-linejoin="round" stroke-linecap="round"/>' +
-      days.map(function (v, i) {
-        var x = (i / (days.length - 1)) * 312 + 4;
-        var y = 84 - (v / max) * 68;
-        return '<circle cx="' + x.toFixed(1) + '" cy="' + y.toFixed(1) + '" r="2.6" fill="#121828" stroke="#5b8cff" stroke-width="1.6"/>';
-      }).join("") +
-      '<text x="4" y="4" fill="#8b96ad" font-size="9">' + labels.join(" / ") + '</text>';
-
-    var total = days.reduce(function (a, b) { return a + b; }, 0);
-    document.getElementById("s-total").textContent = (total + 700).toLocaleString();
-
-    var recent = [
-      { m: "claude-sonnet-5", t: "12 秒前", tok: "1,024" },
-      { m: "claude-opus-5",   t: "3 分钟前", tok: "4,318" },
-      { m: "gpt-5.6-sol",     t: "18 分钟前", tok: "812" },
-      { m: "claude-fable-5",  t: "1 小时前", tok: "2,047" },
-      { m: "claude-sonnet-5", t: "2 小时前", tok: "653" }
-    ];
-    document.getElementById("recent").innerHTML = recent.map(function (r) {
-      return '<div class="kv"><span>' + r.t + '</span>' +
-        '<b><code style="font-size:12.5px">' + r.m + '</code></b>' +
-        '<span>' + r.tok + ' tokens</span></div>';
-    }).join("");
   }
 
   /* ------------------------------ login ------------------------------- */
