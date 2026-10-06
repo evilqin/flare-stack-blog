@@ -5,6 +5,8 @@
   "nav_friend_links": "友链",
   "nav_search": "搜索",
   "nav_login": "登录",
+  "api_promo_title": "本站 API 上线",
+  "api_promo_desc": "一个 Key 接入 GPT、Claude 全系模型，新用户赠 $50 体验额度。",
   "error_title": "页面暂时无法加载",
   "error_desc": "请稍后重试，或先返回首页。",
   "error_retry": "重新尝试",

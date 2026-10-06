@@ -5,6 +5,7 @@ import {
 } from "@/features/categories/components/category-cloud";
 import { Tags, TagsSkeleton } from "@/features/tags/components/tag-cloud";
 import { cn } from "@/lib/utils";
+import { ApiPromo } from "./api-promo";
 import { MusicPlayer } from "./music-player";
 import { Profile } from "./profile";
 import { RandomQuote } from "./random-quote";
@@ -29,6 +30,12 @@ export function Sidebar({ className }: { className?: string }) {
         style={{ animationDelay: "135ms" }}
       >
         <RandomQuote />
+      </div>
+      <div
+        className="fuwari-onload-animation"
+        style={{ animationDelay: "142ms" }}
+      >
+        <ApiPromo />
       </div>
       <div className="sticky top-4 flex flex-col gap-4">
         <div

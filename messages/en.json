@@ -5,6 +5,8 @@
   "nav_friend_links": "Links",
   "nav_search": "Search",
   "nav_login": "Login",
+  "api_promo_title": "Our API is live",
+  "api_promo_desc": "One key for the full GPT and Claude lineup. New accounts get $50 in credit.",
   "error_title": "Page temporarily unavailable",
   "error_desc": "Please try again, or return to the homepage.",
   "error_retry": "Try again",
