@@ -34,8 +34,8 @@ jobs:
         working-directory: fake-ai-api
         run: npm ci --no-audit --no-fund
 
-      # 不带 routes 部署 → 只会得到 fake-ai-api.<账号子域>.workers.dev，
-      # 不会碰到博客的自定义域名。
+      # 部署到 ai.700214.xyz（custom_domain，见 fake-ai-api/wrangler.toml）。
+      # 首次部署会顺带创建 DNS 记录并签发证书；后续部署只更新 Worker 代码。
       - name: Deploy to Cloudflare Workers
         working-directory: fake-ai-api
         env:

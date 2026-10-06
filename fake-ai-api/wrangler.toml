@@ -3,15 +3,24 @@
 # 部署：
 #   npx wrangler deploy --config fake-ai-api/wrangler.toml
 #
-# ⚠️ 这里没有 routes、没有自定义域名，只会得到
-#    https://fake-ai-api.<账号子域>.workers.dev
-#    改这个 name 不会影响博客 Worker（博客那个名字由 WORKER_NAME secret 决定）。
+# 为什么绑自定义域：*.workers.dev 在国内被 DNS 污染，直连超时。
+# ai.700214.xyz 走 Cloudflare 代理，和博客同一条链路，国内可访问。
+#
+# ⚠️ 这是另一个 Worker：改这个 name 不会影响博客
+#    （博客的 Worker 名由 WORKER_NAME secret 决定）。
+#    主机名也不同，所以博客的 route / 缓存 / CDN purge 都不受影响。
 #
 # 注意：config.js 里的 apiKey 优先级高于 FAKE_API_KEY 环境变量
 # （见 lib/handler.js 的 resolveApiKey），所以换 Key 请直接改 config.js。
 name = "fake-ai-api"
 main = "worker.js"
 compatibility_date = "2026-09-22"
+
+# custom_domain = true：wrangler 会自动建 DNS 记录并签发证书，
+# 不需要手动去后台加，也不会有 CNAME 之类的额外步骤。
+routes = [
+  { pattern = "ai.700214.xyz", custom_domain = true }
+]
 
 # 把同目录下的文本资源打包进 Worker（Node/Vercel 侧仍走 fs，见 lib/runtime-node.js）
 # glob 相对于本配置文件所在目录解析，不会扫到博客的 src/。

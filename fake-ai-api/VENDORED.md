@@ -23,19 +23,22 @@
 | `.devin/` | **删除** | 上游作者的 agent 工具配置 |
 | `config.js` | `apiKey` 换成自己生成的 | 不复用作者泄漏的凭据 |
 | `index.html` | Base URL 改为 `location.origin` | 原本写死上游作者域名，部署后会替别人打广告 |
-| `robots.txt`、`sitemap.xml` | 域名换成占位符 | 同上；首次部署拿到真实 workers.dev 地址后需回填 |
+| `robots.txt`、`sitemap.xml` | 域名换成 `ai.700214.xyz` | 同上 |
 | `wrangler.toml` | 补注释 | 说明这是独立 Worker、不绑域名 |
 
 `index.html` 的 Base URL 复制按钮现在取 `location.origin`，所以你部署到任何地址都自动正确。
 
-## 已知遗留
+## 访问地址
 
-`robots.txt` 和 `sitemap.xml` 里的 `REPLACE_WITH_WORKER_URL` 是占位符。
-首次 `wrangler deploy` 成功后，把两处替换成实际的
-`https://fake-ai-api.<账号子域>.workers.dev` 再提交一次即可。
+绑的是 `ai.700214.xyz`（`custom_domain`，见 `wrangler.toml`）。
 
-这两个文件对整蛊没有实际作用（`robots.txt` 本身就 `Disallow: /v1/`），
-只是保留上游文件结构方便日后对比。
+**为什么不直接用默认的 `*.workers.dev`**：那个域在国内被 DNS 污染，
+直连超时、代理也连不上，等于废的。挂到博客域名下走同一条 Cloudflare
+链路才通。代价是这个子域会托管那个"AI 中转站"落地页——子域信誉与主域
+相对独立，但仍建议只私下把地址发给朋友，别公开传播。
+
+`robots.txt` 和 `sitemap.xml` 对整蛊没有实际作用（`robots.txt` 本身就
+`Disallow: /v1/`），保留只为贴合上游文件结构方便日后对比。
 
 ## 怎么更新
 

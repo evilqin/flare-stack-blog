@@ -1,4 +1,4 @@
 User-agent: *
 Disallow: /v1/
 Disallow: /api/
-Sitemap: https://REPLACE_WITH_WORKER_URL/sitemap.xml
+Sitemap: https://ai.700214.xyz/sitemap.xml
