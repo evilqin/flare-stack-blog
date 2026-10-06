@@ -28,6 +28,7 @@
 | `index.html` | **重写**（2026-10-06） | 见下节 |
 | `worker.js` | 新增登录路由 + `noindex` 响应头（2026-10-06） | 见下节 |
 | `lib/handler.js` | `/v1/models` 与 `/v1/models/:id` 加了鉴权（2026-10-06） | 原来免 Key，但官方两个接口都要 Key，免得裸抓一次就露馅 |
+| `lib/handler.js` | `normalizePath` 补 `/v1` 别名（2026-10-06） | 客户端对 base URL 要不要带 `/v1` 期望不一，缺了就 404 |
 
 ## 2026-10-06：落地页重写
 
@@ -49,6 +50,18 @@
 - **导航的"模型列表"原本直指 `/v1/models`**，点一下整页变成裸 JSON。改成锚点到价格表，同时给 `/v1/models` 和 `/v1/models/:id` 加上鉴权——官方这两个接口都要 Key，而且现在的 401 报错格式也跟 OpenAI 一致（`Incorrect API key provided: (none)`），所以随手抓一下反而像正常受限的 API。
 - **整页文字可选中**，鼠标到处是 I 型光标、拖动就高亮，像文档不像产品。现在界面文字 `user-select: none`，只在 `input` / `pre` / `code` 放开——价格表里模型名用的就是 `<code>`，所以仍可选中复制。
 - **没有 favicon**，标签页是空图标。改用内联 SVG data URI，不额外加路由。
+
+### 关于 `/v1` 前缀
+
+有客户端把 base URL 填成不带 `/v1` 的 `https://ai.700214.xyz`，然后请求
+`POST /chat/completions`，拿到 404。真中转服务两种写法都收，所以
+`normalizePath` 里加了一层别名：路径去掉前缀后若落在已知 API 路由上，就把
+`/v1` 补回去。这样对面怎么填都能通——**对整蛊尤其重要**，不能让朋友卡在
+base URL 该不该带 `/v1` 上，试不通他就放弃了。
+
+配套地，worker 里那几条浏览器重定向（`/models`、`/docs` 等）现在只在
+`Accept` 含 `text/html` 时触发。API 客户端也会请求 `/models`，那种请求必须
+落到别名上，而不是收到一个指向 HTML 的 302。
 
 OAuth 在 `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` 配好之前是惰性的：
 `/api/auth/session` 返回 `configured:false`，`/api/auth/github` 返回 501，

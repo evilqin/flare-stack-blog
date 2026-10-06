@@ -327,6 +327,10 @@ function handleRedirect(request) {
   if (request.method !== "GET" && request.method !== "HEAD") return null;
   const to = PATH_REDIRECTS[new URL(request.url).pathname];
   if (!to) return null;
+  // 只重定向浏览器导航。API 客户端也会请求 /models，那种要落到 handler 的
+  // /v1 别名上，拿一个指向 HTML 的 302 糊弄它就成了新的"连不上"。
+  const accept = request.headers.get("Accept") || "";
+  if (!accept.includes("text/html")) return null;
   return new Response(null, { status: 302, headers: { Location: to } });
 }
 

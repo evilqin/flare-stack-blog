@@ -450,13 +450,41 @@ async function parseJsonBody(req, res) {
   return parsed;
 }
 
+// 客户端对 base URL 要不要带 /v1 期望不一：有的自己拼成 /v1/chat/completions，
+// 有的只拼 /chat/completions。中转服务两种写法都收，所以这里把缺的补回去，
+// 否则对面填了不带 /v1 的 base URL 就会拿到 404。
+const V1_ROOTS = [
+  "chat/completions",
+  "completions",
+  "responses",
+  "models",
+  "messages",
+  "embeddings",
+  "moderations",
+  "files",
+  "audio/transcriptions",
+  "audio/translations",
+  "assistants",
+  "threads",
+  "credits",
+];
+
+function withV1Alias(p) {
+  if (p === "/v1" || p.startsWith("/v1/")) return p;
+  const rest = p.slice(1);
+  for (const root of V1_ROOTS) {
+    if (rest === root || rest.startsWith(root + "/")) return "/v1/" + rest;
+  }
+  return p;
+}
+
 function normalizePath(req) {
   let raw = req.url || "/";
   const q = raw.indexOf("?");
   let p = q >= 0 ? raw.slice(0, q) : raw;
   if (p.startsWith("/api")) p = p.slice(4) || "/";
   if (p.length > 1) p = p.replace(/\/+$/, "");
-  return p || "/";
+  return p ? withV1Alias(p) : "/";
 }
 
 /* ============================== OpenAI 兼容：chat / legacy completions ============================== */
