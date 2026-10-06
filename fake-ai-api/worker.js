@@ -26,6 +26,205 @@ function getHandler(env) {
   return handler;
 }
 
+/* ============================ 登录会话 ============================ */
+
+// 会话是 HMAC 签名的 cookie，服务端不存任何东西。
+const COOKIE = "fkapi_session";
+const STATE_COOKIE = "fkapi_state";
+const SESSION_MAX_AGE = 60 * 60 * 24 * 30;
+
+const encoder = new TextEncoder();
+
+function base64url(bytes) {
+  let bin = "";
+  for (const b of bytes) bin += String.fromCharCode(b);
+  return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+}
+
+function fromBase64url(text) {
+  const padded = text.replace(/-/g, "+").replace(/_/g, "/");
+  const bin = atob(padded + "=".repeat((4 - (padded.length % 4)) % 4));
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i += 1) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+async function hmacKey(secret) {
+  return crypto.subtle.importKey(
+    "raw",
+    encoder.encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
+}
+
+/** `payload.signature`, both base64url. */
+async function seal(value, secret) {
+  const payload = base64url(encoder.encode(JSON.stringify(value)));
+  const key = await hmacKey(secret);
+  const sig = await crypto.subtle.sign("HMAC", key, encoder.encode(payload));
+  return `${payload}.${base64url(new Uint8Array(sig))}`;
+}
+
+async function unseal(token, secret) {
+  const dot = token.lastIndexOf(".");
+  if (dot < 1) return null;
+  const payload = token.slice(0, dot);
+  const key = await hmacKey(secret);
+  const expected = new Uint8Array(
+    await crypto.subtle.sign("HMAC", key, encoder.encode(payload))
+  );
+  const given = fromBase64url(token.slice(dot + 1));
+  if (given.length !== expected.length) return null;
+  // Constant-time compare.
+  let diff = 0;
+  for (let i = 0; i < expected.length; i += 1) diff |= expected[i] ^ given[i];
+  if (diff !== 0) return null;
+  try {
+    return JSON.parse(new TextDecoder().decode(fromBase64url(payload)));
+  } catch (err) {
+    return null;
+  }
+}
+
+function readCookie(request, name) {
+  const header = request.headers.get("Cookie") || "";
+  for (const part of header.split(";")) {
+    const eq = part.indexOf("=");
+    if (eq < 0) continue;
+    if (part.slice(0, eq).trim() === name) return part.slice(eq + 1).trim();
+  }
+  return null;
+}
+
+function cookie(name, value, maxAge) {
+  return [
+    `${name}=${value}`,
+    "Path=/",
+    "HttpOnly",
+    "Secure",
+    "SameSite=Lax",
+    maxAge === 0 ? "Max-Age=0" : `Max-Age=${maxAge}`,
+  ].join("; ");
+}
+
+function json(body, status = 200, headers = {}) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json; charset=utf-8", ...headers },
+  });
+}
+
+function oauthConfig(env) {
+  const clientId = env && env.GITHUB_CLIENT_ID;
+  const clientSecret = env && env.GITHUB_CLIENT_SECRET;
+  if (!clientId || !clientSecret) return null;
+  return { clientId, clientSecret, sessionSecret: clientSecret };
+}
+
+/**
+ * Handles the login routes. Returns null for anything else so the caller can
+ * fall through to the api handler.
+ */
+async function handleAuth(request, env) {
+  const url = new URL(request.url);
+  const path = url.pathname;
+  if (!path.startsWith("/api/auth/")) return null;
+
+  const config = oauthConfig(env);
+
+  if (path === "/api/auth/session") {
+    if (!config) return json({ configured: false });
+    const raw = readCookie(request, COOKIE);
+    const session = raw ? await unseal(raw, config.sessionSecret) : null;
+    if (!session || session.exp < Date.now()) return json({ configured: true, user: null });
+    return json({ configured: true, user: session.user });
+  }
+
+  if (path === "/api/auth/logout") {
+    return new Response(null, {
+      status: 302,
+      headers: { Location: "/", "Set-Cookie": cookie(COOKIE, "", 0) },
+    });
+  }
+
+  if (!config) {
+    return json({ error: "oauth_not_configured" }, 501);
+  }
+
+  if (path === "/api/auth/github") {
+    const state = base64url(crypto.getRandomValues(new Uint8Array(16)));
+    const authorize = new URL("https://github.com/login/oauth/authorize");
+    authorize.searchParams.set("client_id", config.clientId);
+    authorize.searchParams.set("redirect_uri", `${url.origin}/api/auth/github/callback`);
+    authorize.searchParams.set("scope", "read:user");
+    authorize.searchParams.set("state", state);
+    const signed = await seal({ state }, config.sessionSecret);
+    return new Response(null, {
+      status: 302,
+      headers: {
+        Location: authorize.toString(),
+        "Set-Cookie": cookie(STATE_COOKIE, signed, 600),
+      },
+    });
+  }
+
+  if (path === "/api/auth/github/callback") {
+    const code = url.searchParams.get("code");
+    const state = url.searchParams.get("state");
+    const rawState = readCookie(request, STATE_COOKIE);
+    const saved = rawState ? await unseal(rawState, config.sessionSecret) : null;
+    if (!code || !state || !saved || saved.state !== state) {
+      return json({ error: "invalid_state" }, 400);
+    }
+
+    const tokenRes = await fetch("https://github.com/login/oauth/access_token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", Accept: "application/json" },
+      body: JSON.stringify({
+        client_id: config.clientId,
+        client_secret: config.clientSecret,
+        code,
+        redirect_uri: `${url.origin}/api/auth/github/callback`,
+      }),
+    });
+    const tokenBody = await tokenRes.json();
+    if (!tokenBody.access_token) return json({ error: "token_exchange_failed" }, 502);
+
+    const userRes = await fetch("https://api.github.com/user", {
+      headers: {
+        Authorization: `Bearer ${tokenBody.access_token}`,
+        Accept: "application/vnd.github+json",
+        "User-Agent": "fkapi",
+      },
+    });
+    if (!userRes.ok) return json({ error: "profile_fetch_failed" }, 502);
+    const profile = await userRes.json();
+
+    const session = await seal(
+      {
+        exp: Date.now() + SESSION_MAX_AGE * 1000,
+        user: {
+          id: profile.id,
+          name: profile.name || profile.login,
+          avatar: profile.avatar_url || "",
+        },
+      },
+      config.sessionSecret
+    );
+
+    const headers = new Headers({ Location: "/" });
+    headers.append("Set-Cookie", cookie(COOKIE, session, SESSION_MAX_AGE));
+    headers.append("Set-Cookie", cookie(STATE_COOKIE, "", 0));
+    return new Response(null, { status: 302, headers });
+  }
+
+  return json({ error: "not_found" }, 404);
+}
+
+/* ====================== Node 风格适配（原有） ====================== */
+
 // Node http.IncomingMessage 的最小替身：handler 只用 method/url/headers/on/destroy
 function makeReq(request) {
   const url = new URL(request.url);
@@ -100,8 +299,24 @@ function makeRes() {
   return res;
 }
 
+// 这是整蛊站：整站不进搜索引擎，降低被陌生人撞见和被安全厂商标记的机会。
+// robots.txt 的 Disallow 会让爬虫根本不来抓取，反而读不到页面里的 noindex，
+// 所以这里用响应头，一次覆盖所有路径。
+function noindex(response) {
+  const headers = new Headers(response.headers);
+  headers.set("X-Robots-Tag", "noindex, nofollow");
+  return new Response(response.body, {
+    status: response.status,
+    statusText: response.statusText,
+    headers,
+  });
+}
+
 export default {
   async fetch(request, env) {
+    const auth = await handleAuth(request, env);
+    if (auth) return noindex(auth);
+
     const req = makeReq(request);
     const res = makeRes();
     req._emitBody();
@@ -131,9 +346,11 @@ export default {
     }
     // 204/304/HEAD 不允许带 body
     const noBody = res.statusCode === 204 || res.statusCode === 304 || request.method === "HEAD";
-    return new Response(noBody ? null : res._stream, {
-      status: res.statusCode,
-      headers,
-    });
+    return noindex(
+      new Response(noBody ? null : res._stream, {
+        status: res.statusCode,
+        headers,
+      })
+    );
   },
 };
