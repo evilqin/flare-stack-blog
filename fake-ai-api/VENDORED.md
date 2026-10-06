@@ -44,6 +44,12 @@
 - **价格表 / 状态页 / 接入文档**：14 个模型配价格，6 个区域节点配 30 天可用率条，cURL / Python / Node 三段示例。
 - **`X-Robots-Tag: noindex`** 覆盖所有响应。用响应头而不是 `robots.txt` 的 `Disallow`：后者会让爬虫不来抓取，于是也读不到页面里的 noindex 标签。
 
+点击过程中还修掉三个小破绽：
+
+- **导航的"模型列表"原本直指 `/v1/models`**，点一下整页变成裸 JSON。改成锚点到价格表，同时给 `/v1/models` 和 `/v1/models/:id` 加上鉴权——官方这两个接口都要 Key，而且现在的 401 报错格式也跟 OpenAI 一致（`Incorrect API key provided: (none)`），所以随手抓一下反而像正常受限的 API。
+- **整页文字可选中**，鼠标到处是 I 型光标、拖动就高亮，像文档不像产品。现在界面文字 `user-select: none`，只在 `input` / `pre` / `code` 放开——价格表里模型名用的就是 `<code>`，所以仍可选中复制。
+- **没有 favicon**，标签页是空图标。改用内联 SVG data URI，不额外加路由。
+
 OAuth 在 `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` 配好之前是惰性的：
 `/api/auth/session` 返回 `configured:false`，`/api/auth/github` 返回 501，
 页面此时回退到本地路径，控制台照常可达。

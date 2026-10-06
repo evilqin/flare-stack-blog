@@ -312,10 +312,32 @@ function noindex(response) {
   });
 }
 
+// 常见路径 → 落地页对应位置。没有这些，朋友顺手把 /docs 敲进地址栏就是 404，
+// 而正经服务这些路径都该有东西。锚点由页面自己滚动过去。
+const PATH_REDIRECTS = {
+  "/docs": "/#docs",
+  "/pricing": "/#pricing",
+  "/models": "/#pricing",
+  "/status": "/#status",
+  "/login": "/#login",
+  "/register": "/#login",
+};
+
+function handleRedirect(request) {
+  if (request.method !== "GET" && request.method !== "HEAD") return null;
+  const to = PATH_REDIRECTS[new URL(request.url).pathname];
+  if (!to) return null;
+  return new Response(null, { status: 302, headers: { Location: to } });
+}
+
 export default {
   async fetch(request, env) {
+    // 先看认证路由，再看路径重定向，最后才交给 api handler。
     const auth = await handleAuth(request, env);
     if (auth) return noindex(auth);
+
+    const redirect = handleRedirect(request);
+    if (redirect) return noindex(redirect);
 
     const req = makeReq(request);
     const res = makeRes();
