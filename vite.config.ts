@@ -6,7 +6,6 @@ import { devtools } from "@tanstack/devtools-vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import viteReact from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
-import viteTsConfigPaths from "vite-tsconfig-paths";
 import packageJson from "./package.json";
 
 const config = defineConfig({
@@ -14,6 +13,7 @@ const config = defineConfig({
     __APP_VERSION__: JSON.stringify(packageJson.version),
   },
   resolve: {
+    tsconfigPaths: true,
     alias: {
       "@": path.resolve(__dirname, "./src"),
     },
@@ -38,9 +38,9 @@ const config = defineConfig({
         ],
       },
       build: {
-        rollupOptions: {
+        rolldownOptions: {
           output: {
-            inlineDynamicImports: true,
+            codeSplitting: false,
           },
         },
       },
@@ -57,9 +57,8 @@ const config = defineConfig({
       viteEnvironment: {
         name: "ssr",
       },
-    }),
-    viteTsConfigPaths({
-      projects: ["./tsconfig.json"],
+      // Read the Worker from cloudflare.config.ts instead of wrangler.jsonc.
+      experimental: { newConfig: true },
     }),
     tailwindcss(),
     devtools(),
