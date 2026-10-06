@@ -1025,13 +1025,15 @@ async function handle(req, res) {
     return sendJson(res, 200, { status: "ok" });
   }
 
-  // 模型列表（公开信息，无需 Key）
+  // 模型列表（与官方一致：需要 Key，否则裸 JSON 一抓就走会露馅）
   if (method === "GET" && p === "/v1/models") {
+    if (!isAuthorized(req)) return authFailure(res, req);
     return sendJson(res, 200, { object: "list", data: MODELS });
   }
 
   // 单模型详情
   if (method === "GET" && p.startsWith("/v1/models/")) {
+    if (!isAuthorized(req)) return authFailure(res, req);
     const mid = decodeURIComponent(p.slice("/v1/models/".length));
     const found = MODELS.find((m) => m.id === mid);
     if (!found) {

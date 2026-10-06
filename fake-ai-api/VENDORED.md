@@ -25,6 +25,28 @@
 | `index.html` | Base URL 改为 `location.origin` | 原本写死上游作者域名，部署后会替别人打广告 |
 | `robots.txt`、`sitemap.xml` | 域名换成 `ai.700214.xyz` | 同上 |
 | `wrangler.toml` | 补注释 | 说明这是独立 Worker、不绑域名 |
+| `index.html` | **重写**（2026-10-06） | 见下节 |
+| `worker.js` | 新增登录路由 + `noindex` 响应头（2026-10-06） | 见下节 |
+| `lib/handler.js` | `/v1/models` 与 `/v1/models/:id` 加了鉴权（2026-10-06） | 原来免 Key，但官方两个接口都要 Key，免得裸抓一次就露馅 |
+
+## 2026-10-06：落地页重写
+
+原来的页面有三个一眼可辨的破绽，都已修掉：
+
+1. **页脚直接链到上游仓库** —— README 写着"整蛊朋友的小玩具"，点一下整蛊就结束了。已移除。
+2. **模型名对不上** —— 页面写 `claude-sonnet-4.6`，而 `/v1/models` 返回 `claude-sonnet-4-6`。现已统一按 `config.js` 的写法。
+3. **"注册"只弹一句"暂未开放注册"** —— 页面根本发不出 Key。现在有完整的登录/注册流程。
+
+新增内容：
+
+- **登录**：GitHub OAuth（真流程，只申请 `read:user`）+ 邮箱验证码兜底。**全程没有密码框**，会话是 HMAC 签名的 cookie，服务端零存储。
+- **控制台**：Key、余额、7 天用量折线、调用统计、最近调用。数字是固定的，刷新不会变——会跳的假数据更可疑。
+- **价格表 / 状态页 / 接入文档**：14 个模型配价格，6 个区域节点配 30 天可用率条，cURL / Python / Node 三段示例。
+- **`X-Robots-Tag: noindex`** 覆盖所有响应。用响应头而不是 `robots.txt` 的 `Disallow`：后者会让爬虫不来抓取，于是也读不到页面里的 noindex 标签。
+
+OAuth 在 `GITHUB_CLIENT_ID` / `GITHUB_CLIENT_SECRET` 配好之前是惰性的：
+`/api/auth/session` 返回 `configured:false`，`/api/auth/github` 返回 501，
+页面此时回退到本地路径，控制台照常可达。
 
 `index.html` 的 Base URL 复制按钮现在取 `location.origin`，所以你部署到任何地址都自动正确。
 

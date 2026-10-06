@@ -27,7 +27,18 @@
       "Hiragino Sans GB", "Microsoft YaHei", Roboto, sans-serif;
     line-height: 1.6;
     -webkit-font-smoothing: antialiased;
+    /* 界面文字不选中、不显示 I 型光标——否则点哪都像在文档里而不是产品界面。
+       真正需要复制的地方（Key / Base URL / 代码 / 输入框）在下面放开。 */
+    -webkit-user-select: none;
+    user-select: none;
+    cursor: default;
   }
+  input, textarea, pre, code {
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  input, textarea { cursor: text; }
+  pre, code { cursor: text; }
   a { color: inherit; text-decoration: none; }
   code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
   .container { width: 100%; max-width: 1080px; margin: 0 auto; padding: 0 20px; }
@@ -261,7 +272,7 @@
       <a href="#pricing">价格</a>
       <a href="#status">状态</a>
       <a href="#docs">文档</a>
-      <a href="/v1/models">模型列表</a>
+      <a href="#pricing">模型列表</a>
     </nav>
     <div class="nav-actions">
       <button class="btn btn-ghost" id="btn-console" hidden>控制台</button>
