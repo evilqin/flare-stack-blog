@@ -15,7 +15,8 @@
     "src/routeTree.gen.ts",
     "worker-configuration.d.ts",
     "migrations/**",
-    "dist/**"
+    "dist/**",
+    "fake-ai-api/**"
   ],
   "env": {
     "builtin": true

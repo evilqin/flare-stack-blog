@@ -13,6 +13,9 @@ on:
       - ".agent/**"
       - ".vscode/**"
       - ".gitignore"
+      # fake-ai-api 有独立的部署流水线（deploy-fake-ai.yml），
+      # 只改玩具时不应触发整个博客重建 + CDN purge。
+      - "fake-ai-api/**"
   workflow_dispatch:
 
 jobs:

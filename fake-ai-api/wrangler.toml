@@ -1,0 +1,22 @@
+# fake-ai-api —— 独立的整蛊 Worker，与博客 Worker 完全隔离。
+#
+# 部署：
+#   npx wrangler deploy --config fake-ai-api/wrangler.toml
+#
+# ⚠️ 这里没有 routes、没有自定义域名，只会得到
+#    https://fake-ai-api.<账号子域>.workers.dev
+#    改这个 name 不会影响博客 Worker（博客那个名字由 WORKER_NAME secret 决定）。
+#
+# 注意：config.js 里的 apiKey 优先级高于 FAKE_API_KEY 环境变量
+# （见 lib/handler.js 的 resolveApiKey），所以换 Key 请直接改 config.js。
+name = "fake-ai-api"
+main = "worker.js"
+compatibility_date = "2026-09-22"
+
+# 把同目录下的文本资源打包进 Worker（Node/Vercel 侧仍走 fs，见 lib/runtime-node.js）
+# glob 相对于本配置文件所在目录解析，不会扫到博客的 src/。
+[[rules]]
+type = "Text"
+globs = ["**/*.txt", "**/*.html", "**/*.xml"]
+# 不 fallthrough，避免 wrangler 警告本规则遮蔽了默认的 .sql 规则
+fallthrough = false

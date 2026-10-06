@@ -1,0 +1,6 @@
+node_modules/
+.vercel/
+.wrangler/
+server.log
+*.log
+.DS_Store
