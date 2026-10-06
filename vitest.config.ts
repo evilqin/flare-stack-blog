@@ -1,7 +1,6 @@
 import path from "node:path";
 import { cloudflareTest, readD1Migrations } from "@cloudflare/vitest-plugin";
 import { loadEnv } from "vite";
-import viteTsConfigPaths from "vite-tsconfig-paths";
 import { defineConfig } from "vitest/config";
 import packageJson from "./package.json";
 
@@ -14,13 +13,9 @@ export default defineConfig(async () => {
       __APP_VERSION__: JSON.stringify(packageJson.version),
     },
     plugins: [
-      viteTsConfigPaths({
-        projects: ["./tsconfig.json"],
-      }),
       cloudflareTest({
-        wrangler: {
-          configPath: "./wrangler.jsonc",
-          environment: "test",
+        experimental: {
+          newConfig: { configPath: "./cloudflare.config.ts" },
         },
         miniflare: {
           bindings: {
@@ -38,6 +33,7 @@ export default defineConfig(async () => {
       }),
     ],
     resolve: {
+      tsconfigPaths: true,
       alias: {
         "@tanstack/react-start/server-entry": path.join(
           __dirname,

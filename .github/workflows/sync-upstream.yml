@@ -15,11 +15,24 @@ jobs:
     name: Sync with upstream
     runs-on: ubuntu-latest
     steps:
+      # Fail loudly rather than silently falling back to GITHUB_TOKEN.
+      - name: Check SYNC_TOKEN is configured
+        run: |
+          if [ -z "${{ secrets.SYNC_TOKEN }}" ]; then
+            echo "::error::SYNC_TOKEN is not set. The default GITHUB_TOKEN cannot push commits that touch .github/workflows/**, so the sync would fail with 'refusing to allow a GitHub App to create or update workflow'. Add a fine-grained PAT (Contents, Workflows, Pull requests: read and write) as the SYNC_TOKEN repository secret."
+            exit 1
+          fi
+
+      # The default GITHUB_TOKEN is rejected when a push touches
+      # .github/workflows/**, which is why every sync that carried an upstream
+      # workflow change failed silently: the conflict branch was never pushed
+      # and no PR was ever opened. SYNC_TOKEN is a fine-grained PAT scoped to
+      # this repository only.
       - name: Checkout
         uses: actions/checkout@v6
         with:
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN || github.token }}
+          token: ${{ secrets.SYNC_TOKEN }}
 
       - name: Setup Git
         run: |
