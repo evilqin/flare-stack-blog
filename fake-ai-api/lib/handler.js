@@ -1053,15 +1053,14 @@ async function handle(req, res) {
     return sendJson(res, 200, { status: "ok" });
   }
 
-  // 模型列表（与官方一致：需要 Key，否则裸 JSON 一抓就走会露馅）
+  // 模型列表（免 Key）。官方这里要鉴权，但不少客户端在"获取可用模型"时
+  // 不带 Key，401 会让它直接判定服务不可用——能连上比像真的重要。
   if (method === "GET" && p === "/v1/models") {
-    if (!isAuthorized(req)) return authFailure(res, req);
     return sendJson(res, 200, { object: "list", data: MODELS });
   }
 
   // 单模型详情
   if (method === "GET" && p.startsWith("/v1/models/")) {
-    if (!isAuthorized(req)) return authFailure(res, req);
     const mid = decodeURIComponent(p.slice("/v1/models/".length));
     const found = MODELS.find((m) => m.id === mid);
     if (!found) {

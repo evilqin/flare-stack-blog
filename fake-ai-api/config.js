@@ -28,6 +28,8 @@ module.exports = {
     "gpt-5.6-terra",
     "gpt-5.6-luna",
     "gpt-6-astra",
+    "deepseek-chat",
+    "deepseek-reasoner",
   ],
 
   // /v1/models 里 created 字段的值（Unix 秒）

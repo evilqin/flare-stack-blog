@@ -137,6 +137,7 @@
   }
   .badge.openai { color: #6ee7b7; border-color: rgba(110,231,183,.3); background: rgba(110,231,183,.07); }
   .badge.anthropic { color: #f0abfc; border-color: rgba(240,171,252,.3); background: rgba(240,171,252,.07); }
+  .badge.deepseek { color: #93c5fd; border-color: rgba(147,197,253,.3); background: rgba(147,197,253,.07); }
 
   /* ---------- status ---------- */
   .status-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(178px, 1fr)); gap: 12px; }
@@ -518,10 +519,12 @@
     { id: "claude-sonnet-4-6", by: "anthropic", in: 3,    out: 15, ctx: "200K" },
     { id: "claude-fable-5-1",  by: "anthropic", in: 3,    out: 15, ctx: "200K" },
     { id: "claude-fable-5",    by: "anthropic", in: 3,    out: 15, ctx: "200K" },
-    { id: "gpt-6-astra",       by: "openai",    in: 10,   out: 40, ctx: "400K" },
-    { id: "gpt-5.6-sol",       by: "openai",    in: 5,    out: 20, ctx: "400K" },
-    { id: "gpt-5.6-terra",     by: "openai",    in: 2.5,  out: 10, ctx: "400K" },
-    { id: "gpt-5.6-luna",      by: "openai",    in: 0.5,  out: 2,  ctx: "400K" }
+    { id: "gpt-6-astra",       by: "openai",    in: 10,   out: 40,   ctx: "400K" },
+    { id: "gpt-5.6-sol",       by: "openai",    in: 5,    out: 20,   ctx: "400K" },
+    { id: "gpt-5.6-terra",     by: "openai",    in: 2.5,  out: 10,   ctx: "400K" },
+    { id: "gpt-5.6-luna",      by: "openai",    in: 0.5,  out: 2,    ctx: "400K" },
+    { id: "deepseek-reasoner", by: "deepseek",  in: 0.55, out: 2.19, ctx: "128K" },
+    { id: "deepseek-chat",     by: "deepseek",  in: 0.27, out: 1.1,  ctx: "128K" }
   ];
 
   var REGIONS = [
@@ -606,7 +609,7 @@
     body.innerHTML = MODELS.map(function (m) {
       return '<tr>' +
         '<td class="name"><code>' + m.id + '</code></td>' +
-        '<td><span class="badge ' + m.by + '">' + (m.by === "openai" ? "OpenAI" : "Anthropic") + '</span></td>' +
+        '<td><span class="badge ' + m.by + '">' + ({ openai: "OpenAI", anthropic: "Anthropic", deepseek: "DeepSeek" }[m.by] || m.by) + '</span></td>' +
         '<td class="price">$<b>' + m.in + '</b></td>' +
         '<td class="price">$<b>' + m.out + '</b></td>' +
         '<td class="price">' + m.ctx + '</td>' +
