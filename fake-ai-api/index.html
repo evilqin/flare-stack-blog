@@ -36,12 +36,14 @@
     user-select: none;
     cursor: default;
   }
-  input, textarea, pre, code {
+  /* 只给真正要复制的地方 I 型光标：Key、Base URL、代码块、输入框。
+     早先是按标签放的（所有 code），结果价格表里鼠标扫过模型名也变成输入光标。 */
+  input, textarea, pre,
+  .key-row code, .base-url-box code {
     -webkit-user-select: text;
     user-select: text;
+    cursor: text;
   }
-  input, textarea { cursor: text; }
-  pre, code { cursor: text; }
   a { color: inherit; text-decoration: none; }
   code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
   .container { width: 100%; max-width: 1080px; margin: 0 auto; padding: 0 20px; }
@@ -211,7 +213,6 @@
   }
   .btn-github:hover { background: #eceff4; }
   .hint { font-size: 12px; color: var(--muted); margin-top: 10px; }
-  .hint code { color: var(--accent); }
   .legal { font-size: 11.5px; color: var(--muted); text-align: center; margin-top: 16px; line-height: 1.7; }
 
   /* ---------- console ---------- */
