@@ -1,0 +1,4 @@
+# Content-hashed client assets (JS/CSS/fonts under /assets/) never change
+# under the same filename, so the browser may cache them forever.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
