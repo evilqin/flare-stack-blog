@@ -48,6 +48,24 @@ async function graphql(query: string, variables: Record<string, unknown>) {
   };
 }
 
+/** Runs a GraphQL query; on error prints it and returns undefined. */
+async function query(
+  label: string,
+  text: string,
+  variables: Record<string, unknown> = {},
+): Promise<unknown | undefined> {
+  const response = await graphql(text, variables);
+  if (response.errors?.length) {
+    console.log(
+      `${label}: graphql error - ${response.errors
+        .map((error) => error.message)
+        .join("; ")}`,
+    );
+    return undefined;
+  }
+  return response.data;
+}
+
 function section(title: string) {
   console.log(`\n## ${title}`);
 }
@@ -64,22 +82,48 @@ function pick(record: JsonRecord, keys: string[]): unknown {
   return undefined;
 }
 
+async function schemaProbe() {
+  section("GraphQL schema probe (diagnostic)");
+  for (const typeName of ["account", "Account"]) {
+    const data = (await query(
+      typeName,
+      `query { __type(name: "${typeName}") { fields { name } } }`,
+    )) as { __type?: { fields?: { name: string }[] } } | undefined;
+    const fields = data?.__type?.fields;
+    if (!fields) {
+      console.log(`${typeName}: no such type`);
+      continue;
+    }
+    const interesting = fields
+      .map((field) => field.name)
+      .filter((name) => /worker|r2|kv|d1|queue|durable|image/i.test(name));
+    console.log(
+      `${typeName} (${fields.length} fields): ${
+        interesting.join(", ") || "(no matches)"
+      }`,
+    );
+    return;
+  }
+}
+
 async function billableUsage() {
-  section("Metered usage, last 30 days (free tier included)");
+  section("Metered usage, last 30 days (needs Billing: Read)");
   const to = new Date();
   const from = new Date(to.getTime() - 30 * 86_400_000);
   const body = (await rest(
     `/billable/usage?from=${from.toISOString().slice(0, 10)}&to=${to
       .toISOString()
       .slice(0, 10)}`,
-  )) as { result?: JsonRecord[] } | JsonRecord[];
-  const records: JsonRecord[] = Array.isArray(body)
-    ? body
-    : ((body as { result?: JsonRecord[] }).result ?? []);
-
+  )) as { result?: JsonRecord[]; errors?: { message: string }[] };
+  if (body.errors?.length) {
+    console.log(
+      `not available: ${body.errors.map((e) => e.message).join("; ")}`,
+    );
+    return;
+  }
+  const records = body.result ?? [];
   if (records.length === 0) {
     console.log("no records returned");
-    console.log(JSON.stringify(body).slice(0, 1000));
     return;
   }
 
@@ -88,7 +132,6 @@ async function billableUsage() {
     string,
     { unit: string; sum: number; days: Map<string, number> }
   >();
-  let recognized = false;
   for (const record of records) {
     const service =
       pick(record, ["ServiceName", "Service", "ProductName"]) ?? "?";
@@ -106,7 +149,6 @@ async function billableUsage() {
     const day = String(
       pick(record, ["ChargePeriodStart", "Date", "PeriodStart"]) ?? "",
     ).slice(0, 10);
-    if (!Number.isNaN(quantity)) recognized = true;
     const key = `${service} | ${metric}`;
     const group = groups.get(key) ?? { unit, sum: 0, days: new Map() };
     if (!Number.isNaN(quantity)) {
@@ -114,14 +156,6 @@ async function billableUsage() {
       if (day) group.days.set(day, (group.days.get(day) ?? 0) + quantity);
     }
     groups.set(key, group);
-  }
-
-  if (!recognized) {
-    console.log(
-      "could not recognize quantity fields; raw shape follows\n" +
-        JSON.stringify(records.slice(0, 2), null, 2).slice(0, 4000),
-    );
-    return;
   }
 
   const rows = [...groups.entries()].sort((a, b) => b[1].sum - a[1].sum);
@@ -139,6 +173,70 @@ async function billableUsage() {
   if (rows.length > 60) console.log(`... and ${rows.length - 60} more rows`);
 }
 
+async function workers() {
+  if (!process.env.WORKER_NAME) return;
+  section("Workers invocations, last 7 days");
+  const to = new Date();
+  const from = new Date(to.getTime() - 7 * 86_400_000);
+  const common = {
+    account: accountId,
+    script: process.env.WORKER_NAME,
+    from: from.toISOString(),
+    to: to.toISOString(),
+  };
+
+  type Row = {
+    sum: { requests: number; errors: number };
+    quantiles?: { cpuTimeP50?: number; cpuTimeP99?: number };
+    dimensions: { date: string };
+  };
+  const selection = (
+    withQuantiles: boolean,
+  ) => `query ($account: String!, $script: String!, $from: Time!, $to: Time!) {
+      viewer {
+        accounts(filter: { accountTag: $account }) {
+          workersInvocationsAdaptive(
+            limit: 1000
+            filter: { scriptName: $script, datetime_geq: $from, datetime_leq: $to }
+          ) {
+            sum { requests errors }
+            ${withQuantiles ? "quantiles { cpuTimeP50 cpuTimeP99 }" : ""}
+            dimensions { date }
+          }
+        }
+      }
+    }`;
+
+  let data = (await query(
+    "workers (with quantiles)",
+    selection(true),
+    common,
+  )) as
+    | {
+        viewer?: { accounts?: { workersInvocationsAdaptive?: Row[] }[] };
+      }
+    | undefined;
+  if (!data) {
+    data = (await query("workers", selection(false), common)) as typeof data;
+  }
+  if (!data) return;
+
+  const rows = data.viewer?.accounts?.[0]?.workersInvocationsAdaptive ?? [];
+  let total = 0;
+  for (const row of rows) {
+    total += row.sum.requests;
+    const p50 = row.quantiles?.cpuTimeP50;
+    const p99 = row.quantiles?.cpuTimeP99;
+    console.log(
+      `${row.dimensions.date}: ${row.sum.requests.toLocaleString("en-US")} req, ${row.sum.errors} err` +
+        (p50 !== undefined
+          ? `, cpu p50 ${(p50 / 1000).toFixed(1)} ms, p99 ${((p99 ?? 0) / 1000).toFixed(1)} ms`
+          : ""),
+    );
+  }
+  console.log(`7d total: ${total.toLocaleString("en-US")} requests`);
+}
+
 async function d1() {
   if (!process.env.D1_DATABASE_ID) return;
   section("D1 database");
@@ -146,13 +244,14 @@ async function d1() {
     result?: JsonRecord;
   };
   const result = body.result ?? {};
-  const numbers = Object.entries(result).filter(
-    ([key, value]) =>
-      typeof value === "number" && /size|byte|rows|table|read|write/i.test(key),
-  );
-  for (const [key, value] of numbers) console.log(`${key}: ${value}`);
-  if (numbers.length === 0)
-    console.log(`keys: ${Object.keys(result).join(", ") || "(none)"}`);
+  for (const [key, value] of Object.entries(result)) {
+    if (
+      typeof value === "number" &&
+      /size|byte|rows|table|read|write/i.test(key)
+    ) {
+      console.log(`${key}: ${value}`);
+    }
+  }
 }
 
 async function r2() {
@@ -160,110 +259,152 @@ async function r2() {
   section("R2 bucket");
   const body = (await rest(`/r2/buckets/${process.env.BUCKET_NAME}/usage`)) as {
     result?: JsonRecord;
-    errors?: unknown;
+    errors?: { message: string }[];
   };
-  if (body.errors) {
-    console.log(`usage endpoint: ${JSON.stringify(body.errors).slice(0, 300)}`);
-    return;
+  if (body.errors?.length) {
+    console.log(
+      `usage endpoint: ${body.errors.map((e) => e.message).join("; ")}`,
+    );
+  } else if (body.result) {
+    console.log(JSON.stringify(body.result));
+  } else {
+    console.log(JSON.stringify(body).slice(0, 500));
   }
-  const result = body.result ?? {};
-  for (const [key, value] of Object.entries(result)) {
-    if (/size|count|bytes/i.test(key)) console.log(`${key}: ${value}`);
+
+  const bucket = process.env.BUCKET_NAME;
+  const data = (await query(
+    "r2 storage",
+    `query ($account: String!, $bucket: String!) {
+      viewer {
+        accounts(filter: { accountTag: $account }) {
+          r2StorageAdaptiveGroups(
+            limit: 1
+            filter: { bucketName: $bucket }
+            orderBy: [date_DESC]
+          ) {
+            max { objectCount payloadSize metadataSize }
+            dimensions { date }
+          }
+        }
+      }
+    }`,
+    { account: accountId, bucket },
+  )) as
+    | {
+        viewer?: {
+          accounts?: {
+            r2StorageAdaptiveGroups?: {
+              max: { objectCount: number; payloadSize: number };
+              dimensions: { date: string };
+            }[];
+          }[];
+        };
+      }
+    | undefined;
+  const storage = data?.viewer?.accounts?.[0]?.r2StorageAdaptiveGroups?.[0];
+  if (storage) {
+    console.log(
+      `storage (${storage.dimensions.date}): ${storage.max.objectCount.toLocaleString("en-US")} objects, ` +
+        `${(storage.max.payloadSize / 1024 / 1024).toFixed(2)} MiB payload`,
+    );
+  }
+
+  const to = new Date();
+  const from = new Date(to.getTime() - 30 * 86_400_000);
+  const operations = (await query(
+    "r2 operations",
+    `query ($account: String!, $bucket: String!, $from: Date!, $to: Date!) {
+      viewer {
+        accounts(filter: { accountTag: $account }) {
+          r2OperationsAdaptiveGroups(
+            limit: 1000
+            filter: { bucketName: $bucket, date_geq: $from, date_leq: $to }
+          ) {
+            sum { requests }
+            dimensions { actionType }
+          }
+        }
+      }
+    }`,
+    {
+      account: accountId,
+      bucket,
+      from: from.toISOString().slice(0, 10),
+      to: to.toISOString().slice(0, 10),
+    },
+  )) as
+    | {
+        viewer?: {
+          accounts?: {
+            r2OperationsAdaptiveGroups?: {
+              sum: { requests: number };
+              dimensions: { actionType: string };
+            }[];
+          }[];
+        };
+      }
+    | undefined;
+  const operationsRows =
+    operations?.viewer?.accounts?.[0]?.r2OperationsAdaptiveGroups ?? [];
+  for (const row of operationsRows) {
+    console.log(
+      `30d ${row.dimensions.actionType}: ${row.sum.requests.toLocaleString("en-US")} requests`,
+    );
   }
 }
 
 async function kv() {
   if (!process.env.KV_NAMESPACE_ID) return;
   section("KV namespace");
-  const body = (await rest(
-    `/storage/kv/namespaces/${process.env.KV_NAMESPACE_ID}/metrics`,
-  )) as { result?: JsonRecord; errors?: unknown };
-  if (body.errors) {
-    console.log(
-      `metrics endpoint: ${JSON.stringify(body.errors).slice(0, 300)}`,
-    );
-    return;
-  }
-  console.log(JSON.stringify(body.result ?? body).slice(0, 800));
-}
-
-async function workers() {
-  if (!process.env.WORKER_NAME) return;
-  section("Workers invocations, last 7 days");
   const to = new Date();
-  const from = new Date(to.getTime() - 7 * 86_400_000);
-  const response = await graphql(
-    `
-      query ($account: String!, $script: String!, $from: Time!, $to: Time!) {
-        viewer {
-          accounts(filter: { accountTag: $account }) {
-            workersInvocationsAdaptive(
-              limit: 1000
-              filter: {
-                scriptName: $script
-                datetime_geq: $from
-                datetime_leq: $to
-              }
-            ) {
-              sum {
-                requests
-                errors
-                cpuTime
-              }
-              dimensions {
-                date
-              }
-            }
+  const from = new Date(to.getTime() - 30 * 86_400_000);
+  const data = (await query(
+    "kv operations",
+    `query ($account: String!, $from: Time!, $to: Time!) {
+      viewer {
+        accounts(filter: { accountTag: $account }) {
+          kvOperationsAdaptiveGroups(
+            limit: 1000
+            filter: { datetime_geq: $from, datetime_leq: $to }
+          ) {
+            sum { requests }
+            dimensions { actionType }
           }
         }
       }
-    `,
-    {
-      account: accountId,
-      script: process.env.WORKER_NAME,
-      from: from.toISOString(),
-      to: to.toISOString(),
-    },
-  );
-  if (response.errors?.length) {
-    console.log(
-      `graphql errors: ${response.errors.map((e) => e.message).join("; ")}`,
-    );
-    return;
-  }
-  type Row = {
-    sum: { requests: number; errors: number; cpuTime: number };
-    dimensions: { date: string };
-  };
-  const data = response.data as {
-    viewer?: { accounts?: { workersInvocationsAdaptive?: Row[] }[] };
-  };
-  const rows = data.viewer?.accounts?.[0]?.workersInvocationsAdaptive ?? [];
-  let total = 0;
-  let cpu = 0;
+    }`,
+    { account: accountId, from: from.toISOString(), to: to.toISOString() },
+  )) as
+    | {
+        viewer?: {
+          accounts?: {
+            kvOperationsAdaptiveGroups?: {
+              sum: { requests: number };
+              dimensions: { actionType: string };
+            }[];
+          }[];
+        };
+      }
+    | undefined;
+  const rows = data?.viewer?.accounts?.[0]?.kvOperationsAdaptiveGroups ?? [];
+  if (rows.length === 0) console.log("no KV operation data");
   for (const row of rows) {
-    total += row.sum.requests;
-    cpu += row.sum.cpuTime;
     console.log(
-      `${row.dimensions.date}: ${row.sum.requests} req, ${row.sum.errors} err, cpu ${(row.sum.cpuTime / 1000).toFixed(0)} ms total`,
+      `30d ${row.dimensions.actionType}: ${row.sum.requests.toLocaleString("en-US")} requests`,
     );
   }
-  console.log(
-    `7d total: ${total.toLocaleString("en-US")} requests; avg cpu ${
-      total ? (cpu / 1000 / total).toFixed(2) : "?"
-    } ms/request`,
-  );
 }
 
 console.log("Cloudflare usage report");
 console.log(`generated: ${new Date().toISOString()}`);
+await schemaProbe();
 await billableUsage();
 await workers();
 await d1();
 await r2();
 await kv();
 console.log(
-  "\nReference free limits: Workers 100k req/day; D1 500 MB/db + 5 GB/account; " +
+  "\nReference free limits: Workers 100k req/day + 10 ms CPU/request; D1 500 MB/db + 5 GB/account; " +
     "KV 100k reads + 1k writes/day; R2 10 GB + 1M Class A + 10M Class B/month; " +
     "Queues 10k ops/day; Durable Objects 100k req/day; Images 5k transforms/month.",
 );
