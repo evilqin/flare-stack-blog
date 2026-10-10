@@ -1,0 +1,40 @@
+name: Usage Report
+
+on:
+  workflow_dispatch:
+  schedule:
+    # Monthly, so the free-tier headroom stays visible over time.
+    - cron: "43 1 1 * *"
+
+permissions:
+  contents: read
+
+jobs:
+  report:
+    name: Usage vs free limits
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+      D1_DATABASE_ID: ${{ secrets.D1_DATABASE_ID }}
+      WORKER_NAME: ${{ secrets.WORKER_NAME }}
+      BUCKET_NAME: ${{ secrets.BUCKET_NAME }}
+      KV_NAMESPACE_ID: ${{ secrets.KV_NAMESPACE_ID }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+
+      # Logs of a public repository are public; keep resource identifiers out.
+      - name: Mask identifiers
+        run: |
+          for value in "$CLOUDFLARE_ACCOUNT_ID" "$D1_DATABASE_ID" "$WORKER_NAME" "$BUCKET_NAME" "$KV_NAMESPACE_ID" "${{ secrets.DOMAIN }}"; do
+            if [ -n "$value" ]; then echo "::add-mask::$value"; fi
+          done
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Usage report
+        run: bun scripts/usage-report.ts
