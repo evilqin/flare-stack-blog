@@ -10,11 +10,12 @@ import {
 } from "@/features/media/media.schema";
 import { getImageDimensions } from "@/features/media/utils/image-dimensions";
 import {
-  buildTransformOptions,
   getContentTypeFromKey,
-  hasImageTransformParams,
+  getOriginalImageUrl,
+  getTransformSourceUrl,
   isAudioKey,
   isGifKey,
+  parseImageTransform,
 } from "@/features/media/utils/media.utils";
 import * as PostMediaRepo from "@/features/posts/data/post-media.data";
 import { CACHE_CONTROL } from "@/lib/constants";
@@ -78,7 +79,9 @@ export async function deleteImage(
   key: string,
 ) {
   // 后端兜底检查：防止删除正在被引用的媒体
-  const inUse = await PostMediaRepo.isMediaInUse(context.db, key);
+  const inUse =
+    (await PostMediaRepo.isMediaInUse(context.db, key)) ||
+    (await MediaRepo.isUsedAsAdminAvatar(context.db, key));
   if (inUse) {
     return err({ reason: "MEDIA_IN_USE" });
   }
@@ -152,7 +155,11 @@ export async function replaceImage(
     ? getImageDimensions(await input.file.arrayBuffer())
     : null;
   await Storage.putToR2(context.env, input.file, input.key);
+  // The key stays, so a new version keeps cached copies of the old file from
+  // answering for the new one.
+  const url = `${getOriginalImageUrl(input.key)}?v=${Date.now()}`;
   const updated = await MediaRepo.updateMediaFile(context.db, input.key, {
+    url,
     fileName: input.file.name || existing.fileName,
     mimeType: input.file.type || existing.mimeType,
     sizeInBytes: input.file.size,
@@ -162,6 +169,7 @@ export async function replaceImage(
   if (!updated) {
     return err({ reason: "MEDIA_NOT_FOUND" });
   }
+  await PostMediaRepo.pointDraftImagesAt(context.db, existing, url);
   return ok(updated);
 }
 
@@ -332,26 +340,24 @@ export async function handleImageRequest(
   // Miniflare's local Image Resizing encodes AVIF extremely slowly (~30s for a
   // ~1MB hero image). Serve the R2 original in local dev; production still
   // goes through Cloudflare Image Resizing.
+  // 2. 构建 Cloudflare Image Resizing 参数（只接受允许的宽度，其余返回原图）
+  const transformOptions = parseImageTransform(
+    searchParams,
+    request.headers.get("Accept") || "",
+  );
   if (
     isLoop ||
     wantsOriginal ||
     isLocalDev ||
     isGifKey(key) ||
-    !hasImageTransformParams(searchParams)
+    !transformOptions
   ) {
     return await serveOriginal();
   }
 
-  // 2. 构建 Cloudflare Image Resizing 参数
-  const transformOptions = buildTransformOptions(
-    searchParams,
-    request.headers.get("Accept") || "",
-  );
-
   // 3. 尝试进行图片处理
   try {
-    const origin = url.origin;
-    const sourceImageUrl = `${origin}/images/${key}?original=true`;
+    const sourceImageUrl = getTransformSourceUrl(url, key);
 
     const subRequestHeaders = new Headers();
 
