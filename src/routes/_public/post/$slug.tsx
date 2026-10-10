@@ -5,6 +5,10 @@ import katexCss from "katex/dist/katex.min.css?url";
 import { z } from "zod";
 import { NotFound } from "@/components/common/not-found";
 import { siteConfigQuery, siteDomainQuery } from "@/features/config/queries";
+import {
+  getPublicImageSrc,
+  PUBLIC_IMAGE_WIDTH,
+} from "@/features/media/utils/media.utils";
 import { PostPage } from "@/features/posts/components/post-page";
 import { PostPageSkeleton } from "@/features/posts/components/post-page-skeleton";
 import { adjacentPostsQuery, postBySlugQuery } from "@/features/posts/queries";
@@ -36,6 +40,12 @@ export const Route = createFileRoute("/_public/post/$slug")({
     return {
       post,
       authorName: siteConfig.author,
+      // Posts without a cover still need a social preview; fall back to the
+      // site banner.
+      fallbackImage: getPublicImageSrc(
+        siteConfig.theme.fuwari.homeBg,
+        PUBLIC_IMAGE_WIDTH.banner,
+      ),
       canonicalHref: buildCanonicalUrl(
         domain,
         `/post/${encodeURIComponent(post.slug)}`,
@@ -49,6 +59,11 @@ export const Route = createFileRoute("/_public/post/$slug")({
       post?.cover && canonicalHref
         ? new URL(post.cover.url, canonicalHref).toString()
         : undefined;
+    const ogImage =
+      coverUrl ??
+      (loaderData?.fallbackImage && canonicalHref
+        ? new URL(loaderData.fallbackImage, canonicalHref).toString()
+        : undefined);
 
     const contentStylesheets: Array<{ rel: "stylesheet"; href: string }> = [];
     if (jsonContentHasType(post?.contentJson, ["inlineMath", "blockMath"])) {
@@ -71,13 +86,13 @@ export const Route = createFileRoute("/_public/post/$slug")({
         { property: "og:description", content: post?.summary ?? "" },
         { property: "og:type", content: "article" },
         { property: "og:url", content: canonicalHref },
-        ...(coverUrl
+        ...(ogImage
           ? [
-              { property: "og:image", content: coverUrl },
+              { property: "og:image", content: ogImage },
               { name: "twitter:card", content: "summary_large_image" },
-              { name: "twitter:image", content: coverUrl },
+              { name: "twitter:image", content: ogImage },
             ]
-          : []),
+          : [{ name: "twitter:card", content: "summary" }]),
       ],
       links: [canonicalLink(canonicalHref), ...contentStylesheets],
       scripts: post
@@ -89,7 +104,7 @@ export const Route = createFileRoute("/_public/post/$slug")({
                 canonicalHref,
                 post: {
                   ...post,
-                  image: coverUrl,
+                  image: ogImage,
                 },
               }),
             },
