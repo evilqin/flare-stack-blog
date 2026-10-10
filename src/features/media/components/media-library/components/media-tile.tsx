@@ -1,9 +1,6 @@
 import { Music } from "lucide-react";
 import { useState } from "react";
-import {
-  getOriginalImageUrl,
-  isAudioKey,
-} from "@/features/media/utils/media.utils";
+import { isAudioKey } from "@/features/media/utils/media.utils";
 import { cn, formatBytes } from "@/lib/utils";
 import { m } from "@/paraglide/messages";
 import type { MediaAsset } from "../types";
@@ -48,7 +45,7 @@ export function MediaTile({
           </div>
         ) : (
           <img
-            src={getOriginalImageUrl(asset.key)}
+            src={asset.url}
             alt={asset.fileName}
             className={cn(
               "h-full w-full object-cover",

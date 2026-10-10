@@ -98,7 +98,7 @@ export function MediaDetail({
             />
           ) : (
             <img
-              src={getOriginalImageUrl(asset.key)}
+              src={asset.url}
               alt={asset.fileName}
               onLoad={(event) => {
                 if (open && !reduced)
