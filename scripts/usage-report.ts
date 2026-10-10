@@ -231,15 +231,16 @@ async function kv() {
 async function images() {
   section("Images transformations (limit 5k unique/month on Free)");
   await attempt("unique month-to-date", [
-    `imagesUniqueTransformationsAccumulatedSinceStartOfMonth { count }`,
-    `imagesUniqueTransformationsAccumulatedSinceStartOfMonth { sum { count } }`,
-    `imagesUniqueTransformationsAccumulatedSinceStartOfMonth { sum { uniqueTransformations } }`,
-    `imagesUniqueTransformationsAccumulatedSinceStartOfMonth`,
+    `imagesUniqueTransformationsAccumulatedSinceStartOfMonth(limit: 100)`,
+    `imagesUniqueTransformationsAccumulatedSinceStartOfMonth(limit: 100) { count }`,
+    `imagesUniqueTransformationsAccumulatedSinceStartOfMonth(limit: 100) { sum { count } }`,
   ]);
-  await attempt("daily transforms", [
+  await attempt("unique per day", [
+    `imagesUniqueGroups(limit: 31, filter: { date_geq: "${monthStartIso}", date_leq: "${today}" }) { count dimensions { date } }`,
+    `imagesUniqueTransformations(limit: 31, filter: { date_geq: "${monthStartIso}", date_leq: "${today}" }) { count dimensions { date } }`,
+  ]);
+  await attempt("transform requests per day", [
     `imagesTransformationsAdaptiveGroups(limit: 31, filter: { date_geq: "${monthStartIso}", date_leq: "${today}" }) { sum { requests } dimensions { date } }`,
-    `imagesTransformationsAdaptiveGroups(limit: 31, filter: { date_geq: "${monthStartIso}", date_leq: "${today}" }) { count dimensions { date } }`,
-    `imagesUniqueTransformations(limit: 31, filter: { date_geq: "${monthStartIso}" }) { count dimensions { date } }`,
   ]);
 }
 
