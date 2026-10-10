@@ -81,6 +81,8 @@ jobs:
       # drops local customizations (e.g. getAdjacentPosts was lost this way).
       - name: Open PR for conflict resolution
         if: steps.merge.outputs.status == 'conflict'
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_TOKEN }}
         run: |
           CONFLICTED=$(git diff --name-only --diff-filter=U)
           git merge --abort
