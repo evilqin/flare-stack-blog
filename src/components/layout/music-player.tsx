@@ -27,7 +27,20 @@ interface SavedState {
 function loadSaved(): SavedState {
   try {
     const raw = localStorage.getItem(LS_KEY);
-    if (raw) return JSON.parse(raw);
+    if (raw) {
+      const parsed = JSON.parse(raw) as Partial<SavedState> | null;
+      const trackIndex = Number(parsed?.trackIndex);
+      const volume = Number(parsed?.volume);
+      return {
+        trackIndex:
+          Number.isFinite(trackIndex) && trackIndex >= 0
+            ? Math.floor(trackIndex)
+            : 0,
+        volume: Number.isFinite(volume)
+          ? Math.min(Math.max(volume, 0), 1)
+          : 0.5,
+      };
+    }
   } catch {
     // ignore
   }
@@ -37,7 +50,10 @@ function loadSaved(): SavedState {
 function loadAutoplayPref(): boolean {
   try {
     const raw = localStorage.getItem(LS_AUTOPLAY_KEY);
-    if (raw !== null) return JSON.parse(raw);
+    if (raw !== null) {
+      const parsed: unknown = JSON.parse(raw);
+      if (typeof parsed === "boolean") return parsed;
+    }
   } catch {
     // ignore
   }
@@ -55,20 +71,18 @@ export const MusicPlayer = memo(function MusicPlayer() {
   const { siteConfig } = useRouteContext({ from: "__root__" });
   const tracks: MusicTrack[] = siteConfig?.music ?? [];
 
-  const [saved] = useState(loadSaved);
-  const [currentIndex, setCurrentIndex] = useState(
-    tracks.length > 0 ? Math.min(saved.trackIndex, tracks.length - 1) : 0,
-  );
+  const [currentIndex, setCurrentIndex] = useState(0);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolumeState] = useState(saved.volume);
+  const [volume, setVolumeState] = useState(0.5);
   const [showPlaylist, setShowPlaylist] = useState(false);
-  const [autoplay, setAutoplay] = useState(loadAutoplayPref);
+  const [autoplay, setAutoplay] = useState(true);
+  const [stateLoaded, setStateLoaded] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const currentIndexRef = useRef(currentIndex);
   const tracksLengthRef = useRef(tracks.length);
-  const volumeRef = useRef(saved.volume);
+  const volumeRef = useRef(0.5);
 
   const saveState = useCallback((index: number, vol: number) => {
     try {
@@ -115,12 +129,23 @@ export const MusicPlayer = memo(function MusicPlayer() {
     tracksLengthRef.current = tracks.length;
   }, [tracks.length]);
 
-  // Sync volume to audio element on mount
+  // Restore the saved track, volume and autoplay preference after mounting.
+  // Reading localStorage during the first render would produce different
+  // markup on the server and the client, which trips React's hydration check.
   useEffect(() => {
-    const audio = audioRef.current;
-    if (audio) {
-      audio.volume = volumeRef.current;
+    const savedState = loadSaved();
+    const index =
+      tracksLengthRef.current > 0
+        ? Math.min(savedState.trackIndex, tracksLengthRef.current - 1)
+        : 0;
+    setCurrentIndex(index);
+    setVolumeState(savedState.volume);
+    volumeRef.current = savedState.volume;
+    if (audioRef.current) {
+      audioRef.current.volume = savedState.volume;
     }
+    setAutoplay(loadAutoplayPref());
+    setStateLoaded(true);
   }, []);
 
   // Register event listeners (re-register on currentIndex/tracks.length change)
@@ -170,11 +195,11 @@ export const MusicPlayer = memo(function MusicPlayer() {
 
   const [autoplayBlocked, setAutoplayBlocked] = useState(false);
 
-  // Attempt autoplay when component mounts (if enabled).
+  // Attempt autoplay when the saved state has been restored (if enabled).
   // No artificial delay — the browser only allows autoplay if there's no
   // user-gesture requirement on this session, so waiting doesn't help.
   useEffect(() => {
-    if (!autoplay || !tracks.length || !currentTrack) return;
+    if (!stateLoaded || !autoplay || !tracks.length || !currentTrack) return;
 
     const audio = audioRef.current;
     if (!audio) return;
@@ -196,7 +221,7 @@ export const MusicPlayer = memo(function MusicPlayer() {
         setAutoplayBlocked(true);
         setIsPlaying(false);
       });
-  }, [autoplay, tracks.length, currentTrack]);
+  }, [stateLoaded, autoplay, tracks.length, currentTrack]);
 
   // Retry autoplay on the very first user interaction.
   // Registered on mount so we never miss the user's first click
@@ -308,6 +333,7 @@ export const MusicPlayer = memo(function MusicPlayer() {
     (e: React.FormEvent<HTMLInputElement>) => {
       const vol = Number(e.currentTarget.value) / 100;
       volumeRef.current = vol;
+      setVolumeState(vol);
       const audio = audioRef.current;
       if (audio) audio.volume = vol;
     },
@@ -531,8 +557,8 @@ export const MusicPlayer = memo(function MusicPlayer() {
               min={0}
               max={100}
               step={1}
-              defaultValue={Math.round(volume * 100)}
-              onInput={handleVolumeInput}
+              value={Math.round(volume * 100)}
+              onChange={handleVolumeInput}
               onMouseUp={commitVolume}
               onTouchEnd={commitVolume}
               className="w-full h-1 appearance-none rounded-full bg-(--fuwari-btn-regular-bg) accent-(--fuwari-primary) cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-(--fuwari-primary)"
@@ -614,8 +640,8 @@ export const MusicPlayer = memo(function MusicPlayer() {
             min={0}
             max={100}
             step={1}
-            defaultValue={Math.round(volume * 100)}
-            onInput={handleVolumeInput}
+            value={Math.round(volume * 100)}
+            onChange={handleVolumeInput}
             onMouseUp={commitVolume}
             onTouchEnd={commitVolume}
             className="w-full h-1 appearance-none rounded-full bg-(--fuwari-btn-regular-bg) accent-(--fuwari-primary) cursor-pointer [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:w-2.5 [&::-webkit-slider-thumb]:h-2.5 [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-(--fuwari-primary)"

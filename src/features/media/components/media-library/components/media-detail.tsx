@@ -15,10 +15,7 @@ import {
   MAX_FILE_SIZE,
 } from "@/features/media/media.schema";
 import { linkedPostsQuery } from "@/features/media/queries";
-import {
-  getOriginalImageUrl,
-  isAudioKey,
-} from "@/features/media/utils/media.utils";
+import { isAudioKey } from "@/features/media/utils/media.utils";
 import { formatBytes } from "@/lib/utils";
 import { m } from "@/paraglide/messages";
 import type { MediaAsset } from "../types";
@@ -91,7 +88,7 @@ export function MediaDetail({
           {audio ? (
             <audio
               key={asset.key}
-              src={getOriginalImageUrl(asset.key)}
+              src={asset.url}
               controls
               preload="metadata"
               className="w-full"
