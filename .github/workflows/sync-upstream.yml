@@ -3,7 +3,7 @@ name: Sync Upstream
 on:
   schedule:
     # Run weekly on Monday at 03:00 UTC
-    - cron: '3 3 * * 1'
+    - cron: "3 3 * * 1"
   workflow_dispatch:
 
 permissions:
@@ -106,10 +106,9 @@ jobs:
           $CONFLICTED
 
           How to resolve:
-          1. Open each conflicted file (look for '<<<<<<<', '=======', '>>>>>>>' markers).
-          2. Keep the local custom logic AND the upstream fix where both matter.
-          3. Use Claude Code: git fetch upstream && git checkout merge-upstream/auto && git merge upstream/main, then ask Claude to resolve the conflicts.
-          4. Commit and push - this PR updates automatically. Then merge.
+          1. Check out this branch: git fetch origin && git switch -c upstream-conflicts origin/merge-upstream/auto
+          2. In each file listed above, replace the '<<<<<<<', '=======', '>>>>>>>' markers with the intended result - keep the local custom logic AND the upstream fix where both matter.
+          3. Commit, then push back: git push origin HEAD:merge-upstream/auto - this PR updates automatically. Merge it once the checks pass.
           EOF
           )
 

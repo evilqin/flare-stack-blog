@@ -1,6 +1,6 @@
 import { useRouteContext } from "@tanstack/react-router";
 import { Quote, RefreshCw } from "lucide-react";
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useEffect, useState } from "react";
 import type { Quote as QuoteType } from "@/features/config/site-config.schema";
 
 function pickRandom<T>(arr: T[]): T {
@@ -11,20 +11,30 @@ export const RandomQuote = memo(function RandomQuote() {
   const { siteConfig } = useRouteContext({ from: "__root__" });
   const quotes: QuoteType[] = (siteConfig?.quotes as QuoteType[]) ?? [];
 
-  const [current, setCurrent] = useState<QuoteType | null>(() => {
-    if (!quotes.length) return null;
-    return pickRandom(quotes);
-  });
+  // The server render and the first client render must agree, so both start
+  // from the first quote; a random pick follows right after mounting. A
+  // render-time Math.random() would trip React's hydration check.
+  const [current, setCurrent] = useState<QuoteType | null>(
+    () => quotes[0] ?? null,
+  );
+
+  useEffect(() => {
+    if (quotes.length > 1) setCurrent(pickRandom(quotes));
+  }, []);
 
   const refresh = useCallback(() => {
-    if (!quotes.length) return;
-    let next = pickRandom(quotes);
-    // Avoid showing the same quote twice in a row if there are multiple quotes
-    while (quotes.length > 1 && next.id === current?.id) {
-      next = pickRandom(quotes);
-    }
-    setCurrent(next);
-  }, [quotes, current]);
+    setCurrent((previous) => {
+      if (!quotes.length) return null;
+      // Draw from everything but the current quote so consecutive clicks
+      // always change the card. Filtering instead of retrying also keeps the
+      // button working when several quotes share an id.
+      const pool =
+        quotes.length > 1
+          ? quotes.filter((quote) => quote.id !== previous?.id)
+          : quotes;
+      return pool.length > 0 ? pickRandom(pool) : pickRandom(quotes);
+    });
+  }, [quotes]);
 
   if (!quotes.length || !current) {
     return (

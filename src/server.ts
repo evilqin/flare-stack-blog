@@ -6,8 +6,10 @@ import {
   workersCacheKey,
   type WorkersCachePurgeTarget,
 } from "@/features/cache/workers-cache-policy";
+import { resolveUmamiApiConfig } from "@/features/post-popularity/data/umami.client";
 import { postPopularityService } from "@/features/post-popularity/service/post-popularity.service";
 import { getDb } from "@/lib/db";
+import { serverEnv } from "@/lib/env/server.env";
 import { handleQueueBatch } from "@/lib/queue/queue.handler";
 import {
   isSuspiciousRequest,
@@ -68,6 +70,15 @@ export default {
     await handleQueueBatch(batch, env, ctx);
   },
   async scheduled(_controller, env, ctx) {
+    try {
+      resolveUmamiApiConfig(serverEnv(env));
+    } catch {
+      // Without Umami credentials the popularity snapshot cannot update; that
+      // is the expected steady state (the admin panel reports it as
+      // unconfigured), so skip quietly instead of failing one scheduled
+      // invocation per day.
+      return;
+    }
     const result = await postPopularityService.sync({
       env,
       db: getDb(env),
