@@ -11,6 +11,7 @@ import { postPopularityService } from "@/features/post-popularity/service/post-p
 import { getDb } from "@/lib/db";
 import { serverEnv } from "@/lib/env/server.env";
 import { handleQueueBatch } from "@/lib/queue/queue.handler";
+import { applySecurityHeaders } from "@/lib/security/security-headers";
 import {
   isSuspiciousRequest,
   scannerNotFoundResponse,
@@ -40,7 +41,7 @@ export class App extends WorkerEntrypoint<Env, AppProps> {
   async fetch(request: Request) {
     // Reject scanner probes before they reach the router and its SSR pipeline.
     if (isSuspiciousRequest(request)) {
-      return scannerNotFoundResponse();
+      return applySecurityHeaders(scannerNotFoundResponse());
     }
     const response = await paraglideMiddleware(request, () =>
       handler.fetch(request, {
@@ -50,7 +51,7 @@ export class App extends WorkerEntrypoint<Env, AppProps> {
         },
       }),
     );
-    return applyWorkersCachePolicy(request, response);
+    return applySecurityHeaders(applyWorkersCachePolicy(request, response));
   }
 
   async purgeCache(target: WorkersCachePurgeTarget) {

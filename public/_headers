@@ -2,3 +2,9 @@
 # under the same filename, so the browser may cache them forever.
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+
+# Any static file: baseline hardening. The Worker sets the same headers on its
+# own responses; these rules cover files served straight from the asset layer.
+/*
+  X-Content-Type-Options: nosniff
+  Referrer-Policy: strict-origin-when-cross-origin
